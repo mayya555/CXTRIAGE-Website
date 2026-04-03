@@ -1,22 +1,64 @@
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { WebAppLayout } from '../../components/layout/WebAppLayout';
 import { Brain, FileText, User, AlertCircle, ArrowLeft, Clock, CheckCircle } from 'lucide-react';
-import { mockCases, mockFindings } from '../../lib/data';
+import { getCaseById } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function CaseDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const caseData = mockCases.find(c => c.id === id) || mockCases[0];
+  const [caseData, setCaseData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCase = async () => {
+      if (!id) return;
+      try {
+        const data = await getCaseById(id);
+        setCaseData(data);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to fetch case details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCase();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <WebAppLayout role="doctor" title="Loading Case..." breadcrumbs={[]}>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB]"></div>
+        </div>
+      </WebAppLayout>
+    );
+  }
+
+  if (!caseData) {
+    return (
+      <WebAppLayout role="doctor" title="Case Not Found" breadcrumbs={[]}>
+        <div className="text-center py-12">
+          <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-900">Case Not Found</h2>
+          <button onClick={() => navigate('/doctor/dashboard')} className="mt-4 text-[#2563EB] hover:underline">Back to Dashboard</button>
+        </div>
+      </WebAppLayout>
+    );
+  }
+
+  const findings = caseData.findings || [];
 
   return (
     <WebAppLayout
       role="doctor"
-      title={`Case — ${caseData.patient}`}
-      subtitle={`MRN: ${caseData.mrn} · ${caseData.date}`}
+      title={`Case — ${caseData.patient_name}`}
+      subtitle={`MRN: ${caseData.case_code} · ${caseData.created_at}`}
       breadcrumbs={[
         { label: 'Dashboard', path: '/doctor/dashboard' },
         { label: 'Cases', path: '/doctor/new-cases' },
-        { label: caseData.patient },
+        { label: caseData.patient_name },
       ]}
     >
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -25,15 +67,16 @@ export default function CaseDetail() {
           {/* X-Ray Preview */}
           <div className="bg-[#050a14] rounded-2xl border border-slate-700 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 bg-[#0a1628] border-b border-slate-700/50">
-              <span className="text-slate-300 text-sm font-medium">{caseData.patient} — PA Chest X-Ray</span>
+              <span className="text-slate-300 text-sm font-medium">{caseData.patient_name} — PA Chest X-Ray</span>
               <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
-                caseData.priority === 'Critical' ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                caseData.priority === 'CRITICAL' ? 'bg-red-500/20 text-red-400 border-red-500/30'
                   : 'bg-orange-500/20 text-orange-400 border-orange-500/30'
               }`}>
-                {caseData.priority.toUpperCase()}
+                {(caseData.priority || 'ROUTINE').toUpperCase()}
               </span>
             </div>
             <div className="flex items-center justify-center p-8">
+              {/* This SVG is a placeholder for the actual X-Ray image */}
               <svg viewBox="0 0 200 260" className="w-60 h-80">
                 <rect width="200" height="260" fill="#050a14" />
                 {[0,1,2,3,4,5,6].map(i => (
@@ -74,12 +117,13 @@ export default function CaseDetail() {
               AI Findings
             </h3>
             <div className="space-y-3">
-              {mockFindings.map((f, i) => (
+              {findings.length === 0 && <p className="text-sm text-slate-400 italic">No specific findings processed yet.</p>}
+              {findings.map((f: any, i: number) => (
                 <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                  {f.severity === 'Normal'
+                  {f.severity === 'NORMAL'
                     ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                     : <AlertCircle className={`w-4 h-4 flex-shrink-0 ${
-                        f.severity === 'Critical' ? 'text-red-500' : f.severity === 'High' ? 'text-orange-500' : 'text-amber-500'
+                        f.severity === 'CRITICAL' ? 'text-red-500' : f.severity === 'HIGH' ? 'text-orange-500' : 'text-amber-500'
                       }`} />
                   }
                   <div className="flex-1">
@@ -89,15 +133,15 @@ export default function CaseDetail() {
                   <div className="flex items-center gap-2">
                     <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${
-                        f.severity === 'Critical' ? 'bg-red-500' : f.severity === 'High' ? 'bg-orange-500' : f.severity === 'Medium' ? 'bg-amber-500' : 'bg-green-500'
+                        f.severity === 'CRITICAL' ? 'bg-red-500' : f.severity === 'HIGH' ? 'bg-orange-500' : f.severity === 'MEDIUM' ? 'bg-amber-500' : 'bg-green-500'
                       }`} style={{ width: `${f.confidence}%` }} />
                     </div>
                     <span className="text-xs font-bold text-slate-600 w-8">{f.confidence}%</span>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    f.severity === 'Critical' ? 'bg-red-100 text-red-700' :
-                    f.severity === 'High' ? 'bg-orange-100 text-orange-700' :
-                    f.severity === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                    f.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                    f.severity === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                    f.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
                   }`}>{f.severity}</span>
                 </div>
               ))}
@@ -115,12 +159,12 @@ export default function CaseDetail() {
             </div>
             <div className="space-y-2.5">
               {[
-                { label: 'Full Name', value: caseData.patient },
-                { label: 'Age / Gender', value: `${caseData.age}y / ${caseData.gender}` },
-                { label: 'MRN', value: caseData.mrn, mono: true },
-                { label: 'Scan Date', value: caseData.date },
+                { label: 'Full Name', value: caseData.patient_name },
+                { label: 'Age / Gender', value: `${caseData.patient_age}y / ${caseData.patient_gender}` },
+                { label: 'MRN', value: caseData.case_code, mono: true },
+                { label: 'Scan Date', value: caseData.created_at },
                 { label: 'Priority', value: caseData.priority },
-                { label: 'AI Status', value: caseData.aiStatus },
+                { label: 'AI Status', value: caseData.ai_status || 'Complete' },
               ].map((item, i) => (
                 <div key={i} className="flex justify-between">
                   <span className="text-xs text-slate-400">{item.label}</span>
@@ -138,12 +182,11 @@ export default function CaseDetail() {
             </h3>
             <div className="space-y-3">
               {[
-                { event: 'X-ray uploaded by technician', done: true, time: '09:46' },
-                { event: 'AI analysis completed', done: true, time: '09:52' },
-                { event: 'Critical alert sent to radiologist', done: true, time: '09:52' },
-                { event: 'Awaiting radiologist review', done: false, time: 'Pending' },
-                { event: 'Diagnosis confirmation', done: false, time: 'Pending' },
-                { event: 'Report generation', done: false, time: 'Pending' },
+                { event: 'X-ray uploaded by technician', done: true, time: caseData.created_at },
+                { event: 'AI analysis completed', done: !!caseData.ai_result, time: caseData.ai_completed_at || 'N/A' },
+                { event: 'Awaiting radiologist review', done: (caseData.status || '').toLowerCase() !== 'new', time: 'Active' },
+                { event: 'Diagnosis confirmation', done: (caseData.status || '').toLowerCase() === 'completed', time: 'Pending' },
+                { event: 'Report generation', done: (caseData.status || '').toLowerCase() === 'completed', time: 'Pending' },
               ].map((t, i) => (
                 <div key={i} className="flex items-center gap-2.5">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${t.done ? 'bg-green-500' : 'bg-slate-200'}`} />

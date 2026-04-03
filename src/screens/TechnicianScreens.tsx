@@ -18,7 +18,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
   const [isUploading, setIsUploading] = useState(false);
   const [scanImage, setScanImage] = useState<string | null>(null);
   const [aiPriority, setAiPriority] = useState<'Normal' | 'Urgent' | 'Critical'>('Normal');
-  
+
   // Profile State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileName, setProfileName] = useState('James Chen');
@@ -55,12 +55,12 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
       setUploadProgress(0);
       const interval = setInterval(() => {
         setUploadProgress(p => {
-           if (p >= 100) {
-             clearInterval(interval);
-             setTimeout(() => navigate(33), 500); 
-             return 100;
-           }
-           return p + 2;
+          if (p >= 100) {
+            clearInterval(interval);
+            setTimeout(() => navigate(33), 500);
+            return 100;
+          }
+          return p + 2;
         });
       }, 50);
       return () => clearInterval(interval);
@@ -176,7 +176,12 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
           role="technician"
           currentScreen={screenId}
           onNavigate={navigate}
-          onLogout={() => { setRole(null); navigate(3); }}
+          onLogout={() => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userRole');
+            setRole(null);
+            navigate(3);
+          }}
         >
           <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
             {/* Welcome Header */}
@@ -225,7 +230,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             <div>
               <h2 className="font-bold text-slate-900 text-lg mb-4">Quick Actions</h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <button 
+                <button
                   onClick={() => navigate(25)}
                   className="bg-gradient-to-br from-[#2563EB] to-[#1d4ed8] rounded-xl p-6 shadow-md hover:shadow-lg transition-all hover:scale-105 group h-40"
                 >
@@ -240,7 +245,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   </div>
                 </button>
 
-                <button 
+                <button
                   onClick={() => navigate(27)}
                   className="bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl p-6 shadow-md hover:shadow-lg transition-all hover:scale-105 group h-40"
                 >
@@ -255,7 +260,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   </div>
                 </button>
 
-                <button 
+                <button
                   onClick={() => navigate(34)}
                   className="bg-gradient-to-br from-purple-600 to-violet-600 rounded-xl p-6 shadow-md hover:shadow-lg transition-all hover:scale-105 group h-40"
                 >
@@ -270,7 +275,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   </div>
                 </button>
 
-                <button 
+                <button
                   onClick={() => navigate(61)}
                   className="bg-gradient-to-br from-orange-600 to-amber-600 rounded-xl p-6 shadow-md hover:shadow-lg transition-all hover:scale-105 group h-40"
                 >
@@ -309,9 +314,8 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-                          scan.status === 'Processing' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
-                        }`}>
+                        <div className={`text-xs font-semibold px-3 py-1.5 rounded-full ${scan.status === 'Processing' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
+                          }`}>
                           {scan.status}
                         </div>
                         <div className="text-xs text-slate-400 mt-2">{scan.time}</div>
@@ -341,7 +345,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
             </button>
             <h1 className="text-lg font-medium">Profile</h1>
-            <button 
+            <button
               onClick={() => setIsEditingProfile(!isEditingProfile)}
               className="ml-auto hover:bg-white/10 rounded-full p-2 transition-colors"
             >
@@ -369,7 +373,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Full Name</label>
                 <div className="bg-white rounded-xl border border-gray-200 px-4 py-3">
                   {isEditingProfile ? (
-                    <input 
+                    <input
                       type="text"
                       value={profileName}
                       onChange={(e) => setProfileName(e.target.value)}
@@ -386,7 +390,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
                   <Mail className="w-5 h-5 text-[#2563EB]" />
                   {isEditingProfile ? (
-                    <input 
+                    <input
                       type="email"
                       value={profileEmail}
                       onChange={(e) => setProfileEmail(e.target.value)}
@@ -403,7 +407,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
                   <Phone className="w-5 h-5 text-[#2563EB]" />
                   {isEditingProfile ? (
-                    <input 
+                    <input
                       type="tel"
                       value={profilePhone}
                       onChange={(e) => setProfilePhone(e.target.value)}
@@ -424,7 +428,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               </div>
 
               {isEditingProfile && (
-                <button 
+                <button
                   onClick={handleSaveProfile}
                   className="w-full h-12 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold text-sm rounded-xl transition-all active:scale-[0.98] mt-6"
                 >
@@ -451,7 +455,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 <ChevronRight className="w-5 h-5 text-slate-400" />
               </button>
 
-              <button 
+              <button
                 onClick={() => navigate(2)}
                 className="w-full bg-white rounded-xl border border-red-200 px-4 py-4 flex items-center justify-between hover:bg-red-50 transition-colors"
               >
@@ -497,7 +501,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               {/* Full Name */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Full Name</label>
-                <input 
+                <input
                   type="text"
                   value={patientFullName}
                   onChange={(e) => setPatientFullName(e.target.value)}
@@ -511,7 +515,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Date of Birth</label>
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2563EB]" />
-                  <input 
+                  <input
                     type="date"
                     value={patientDOB}
                     onChange={(e) => setPatientDOB(e.target.value)}
@@ -523,7 +527,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               {/* Gender */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Gender</label>
-                <select 
+                <select
                   value={patientGender}
                   onChange={(e) => setPatientGender(e.target.value)}
                   className="w-full h-12 bg-white border border-gray-200 rounded-xl px-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-200"
@@ -540,7 +544,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Medical Record Number</label>
                 <div className="relative">
                   <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2563EB]" />
-                  <input 
+                  <input
                     type="text"
                     value={patientMRN}
                     onChange={(e) => setPatientMRN(e.target.value)}
@@ -553,7 +557,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               {/* Reason for X-Ray */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Reason for X-Ray</label>
-                <textarea 
+                <textarea
                   value={patientReason}
                   onChange={(e) => setPatientReason(e.target.value)}
                   placeholder="Chest pain, shortness of breath..."
@@ -563,7 +567,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               </div>
 
               {/* Register Button */}
-              <button 
+              <button
                 onClick={handleRegisterPatient}
                 disabled={!patientFullName || !patientDOB || !patientGender || !patientMRN}
                 className="w-full h-12 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold text-sm rounded-xl transition-all active:scale-[0.98] mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -634,19 +638,19 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
             {/* Action Buttons */}
             <div className="w-full max-w-md mt-8 space-y-3">
-              <button 
+              <button
                 onClick={() => navigate(27)}
                 className="w-full h-12 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold text-sm rounded-xl transition-all active:scale-[0.98]"
               >
                 Start X-Ray Scan
               </button>
-              <button 
+              <button
                 onClick={() => navigate(25)}
                 className="w-full h-12 bg-white border border-slate-200 hover:bg-gray-50 text-slate-900 font-semibold text-sm rounded-xl transition-all active:scale-[0.98]"
               >
                 Register Another Patient
               </button>
-              <button 
+              <button
                 onClick={() => navigate(23)}
                 className="w-full h-12 text-slate-400 hover:text-slate-600 font-medium text-sm transition-colors"
               >
@@ -720,7 +724,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
             {/* Continue Button */}
             <div className="max-w-md mx-auto mt-8">
-              <button 
+              <button
                 onClick={() => navigate(28)}
                 className="w-full h-12 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold text-sm rounded-xl transition-all active:scale-[0.98]"
               >
@@ -745,9 +749,9 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
           const originalError = console.error;
           console.error = (...args: any[]) => {
             const errorString = args.join(' ');
-            if (errorString.includes('Camera access error') || 
-                errorString.includes('NotAllowedError') || 
-                errorString.includes('Permission denied')) {
+            if (errorString.includes('Camera access error') ||
+              errorString.includes('NotAllowedError') ||
+              errorString.includes('Permission denied')) {
               // Silently handle camera errors - UI will show user-friendly message
               return;
             }
@@ -763,16 +767,16 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
         const startCamera = async () => {
           setCameraError(false);
           setErrorMessage('');
-          
+
           try {
             const stream = await navigator.mediaDevices.getUserMedia({
-              video: { 
+              video: {
                 facingMode: 'environment', // Use back camera on mobile
                 width: { ideal: 1920 },
                 height: { ideal: 1080 }
               }
             });
-            
+
             if (videoRef.current) {
               videoRef.current.srcObject = stream;
               setCameraActive(true);
@@ -780,7 +784,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
           } catch (err: any) {
             // Error handling - UI will display user-friendly message
             setCameraError(true);
-            
+
             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
               setErrorMessage('Camera permission denied. Please allow camera access in your browser settings.');
             } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
@@ -810,16 +814,16 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
           if (videoRef.current && canvasRef.current) {
             const canvas = canvasRef.current;
             const video = videoRef.current;
-            
+
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            
+
             const ctx = canvas.getContext('2d');
             if (ctx) {
               ctx.drawImage(video, 0, 0);
               const imageData = canvas.toDataURL('image/png');
               setCapturedImage(imageData);
-              
+
               // Stop camera after capture
               if (videoRef.current && videoRef.current.srcObject) {
                 const stream = videoRef.current.srcObject as MediaStream;
@@ -869,9 +873,9 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   {!capturedImage ? (
                     // Camera View
                     <div className="relative aspect-[3/4] bg-slate-800">
-                      <video 
+                      <video
                         ref={videoRef}
-                        autoPlay 
+                        autoPlay
                         playsInline
                         muted
                         className="absolute inset-0 w-full h-full object-cover"
@@ -885,9 +889,9 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   ) : (
                     // Captured X-Ray Review
                     <div className="relative aspect-[3/4]">
-                      <img 
-                        src={capturedImage} 
-                        alt="Captured X-Ray" 
+                      <img
+                        src={capturedImage}
+                        alt="Captured X-Ray"
                         className="w-full h-full object-cover"
                       />
                       {/* Scan Info Overlay */}
@@ -987,7 +991,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Reason Selection */}
             <div className="w-full max-w-md space-y-3 mb-8">
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Select Reason</div>
-              
+
               {[
                 'Poor image quality',
                 'Incorrect positioning',
@@ -995,25 +999,22 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 'Technical error',
                 'Other'
               ].map((reason, idx) => (
-                <button 
+                <button
                   key={idx}
                   onClick={() => setSelectedRetakeReason(reason)}
-                  className={`w-full bg-white rounded-xl border px-4 py-3.5 text-left transition-all flex items-center justify-between ${
-                    selectedRetakeReason === reason 
-                      ? 'border-[#2563EB] bg-blue-50' 
+                  className={`w-full bg-white rounded-xl border px-4 py-3.5 text-left transition-all flex items-center justify-between ${selectedRetakeReason === reason
+                      ? 'border-[#2563EB] bg-blue-50'
                       : 'border-slate-200 hover:border-blue-300 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
-                  <span className={`text-sm font-medium ${
-                    selectedRetakeReason === reason ? 'text-[#2563EB]' : 'text-slate-900'
-                  }`}>
+                  <span className={`text-sm font-medium ${selectedRetakeReason === reason ? 'text-[#2563EB]' : 'text-slate-900'
+                    }`}>
                     {reason}
                   </span>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    selectedRetakeReason === reason 
-                      ? 'border-[#2563EB] bg-[#2563EB]' 
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedRetakeReason === reason
+                      ? 'border-[#2563EB] bg-[#2563EB]'
                       : 'border-slate-300'
-                  }`}>
+                    }`}>
                     {selectedRetakeReason === reason && (
                       <div className="w-2 h-2 bg-white rounded-full"></div>
                     )}
@@ -1024,7 +1025,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
             {/* Action Buttons */}
             <div className="w-full max-w-md space-y-3">
-              <button 
+              <button
                 onClick={() => {
                   if (selectedRetakeReason) {
                     toast.success(`Retaking scan: ${selectedRetakeReason}`);
@@ -1038,7 +1039,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               >
                 Confirm Retake
               </button>
-              <button 
+              <button
                 onClick={() => navigate(30)}
                 className="w-full h-12 bg-white border border-slate-200 hover:bg-gray-50 text-slate-900 font-semibold text-sm rounded-xl transition-all active:scale-[0.98]"
               >
@@ -1075,7 +1076,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             <div className="w-full max-w-md aspect-[3/4] bg-slate-800 rounded-xl border-2 border-green-500/50 relative overflow-hidden">
               {/* Simulated X-Ray */}
               <div className="absolute inset-0 bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900 opacity-50"></div>
-              
+
               {/* Chest X-Ray Simulation */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <Activity className="w-32 h-32 text-slate-600" />
@@ -1124,14 +1125,14 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
             {/* Action Buttons */}
             <div className="max-w-md mx-auto space-y-3">
-              <button 
+              <button
                 onClick={() => navigate(31)}
                 className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <Check className="w-5 h-5" />
                 Approve & Send to AI
               </button>
-              <button 
+              <button
                 onClick={() => navigate(29)}
                 className="w-full h-12 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
@@ -1219,14 +1220,14 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
             {/* Action Buttons */}
             <div className="w-full max-w-md space-y-3">
-              <button 
+              <button
                 onClick={() => navigate(32)}
                 className="w-full h-12 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold text-sm rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <Send className="w-5 h-5" />
                 Upload & Send to AI
               </button>
-              <button 
+              <button
                 onClick={() => navigate(30)}
                 className="w-full h-12 bg-white border border-slate-200 hover:bg-gray-50 text-slate-900 font-medium text-sm rounded-xl transition-all active:scale-[0.98]"
               >
@@ -1272,7 +1273,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 <span className="text-[#2563EB] font-semibold">{uploadProgress}%</span>
               </div>
               <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-[#2563EB] rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${uploadProgress}%` }}
                 ></div>
@@ -1381,7 +1382,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
             {/* Action Buttons */}
             <div className="w-full max-w-md space-y-3">
-              <button 
+              <button
                 onClick={() => {
                   // Simulate AI analysis with random priority
                   const priorities: ('Normal' | 'Urgent' | 'Critical')[] = ['Normal', 'Urgent', 'Critical'];
@@ -1393,13 +1394,13 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               >
                 View AI Analysis Results
               </button>
-              <button 
+              <button
                 onClick={() => navigate(25)}
                 className="w-full h-12 bg-white border border-slate-200 hover:bg-gray-50 text-slate-900 font-medium text-sm rounded-xl transition-all active:scale-[0.98]"
               >
                 Register New Patient
               </button>
-              <button 
+              <button
                 onClick={() => navigate(23)}
                 className="w-full h-12 text-slate-400 hover:text-slate-600 font-medium text-sm transition-colors"
               >
@@ -1454,7 +1455,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 { id: 'SCN-8468', patient: 'Lisa Anderson', mrn: 'MRN-9823', date: 'Yesterday, 3:20 PM', status: 'Completed', statusColor: 'green' },
                 { id: 'SCN-8467', patient: 'David Martinez', mrn: 'MRN-6547', date: 'Yesterday, 2:10 PM', status: 'Completed', statusColor: 'green' }
               ].map((scan, idx) => (
-                <button 
+                <button
                   key={idx}
                   onClick={() => navigate(35)}
                   className="w-full bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:border-blue-400 transition-all text-left"
@@ -1478,9 +1479,8 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                       <div className="text-sm font-medium text-[#2563EB]">{scan.id}</div>
                     </div>
                     <div className="text-right">
-                      <div className={`text-xs font-medium px-2 py-1 rounded-full mb-1 ${
-                        scan.statusColor === 'yellow' ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'
-                      }`}>
+                      <div className={`text-xs font-medium px-2 py-1 rounded-full mb-1 ${scan.statusColor === 'yellow' ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'
+                        }`}>
                         {scan.status}
                       </div>
                       <div className="text-xs text-slate-400">{scan.date}</div>
@@ -1581,7 +1581,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Processing Timeline */}
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-4">Processing Timeline</h3>
-              
+
               <div className="relative">
                 {/* Timeline Line */}
                 <div className="absolute left-5 top-4 bottom-4 w-0.5 bg-slate-200"></div>
@@ -1701,7 +1701,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
                     <User className="w-10 h-10 text-[#2563EB]" />
                   </div>
-                  <button 
+                  <button
                     onClick={() => navigate(98)}
                     className="absolute bottom-0 right-0 w-7 h-7 bg-[#2563EB] rounded-full flex items-center justify-center shadow-lg border-2 border-white hover:bg-blue-700 transition-colors"
                   >
@@ -1715,8 +1715,8 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
                   </div>
                 </div>
-                <button 
-                  onClick={() => navigate(98)} 
+                <button
+                  onClick={() => navigate(98)}
                   className="hover:bg-gray-50 rounded-full p-2 transition-colors"
                 >
                   <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -1727,10 +1727,10 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Preferences */}
             <div className="mb-6">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Preferences</h2>
-              
+
               {/* Theme */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 mb-3">
-                <button 
+                <button
                   onClick={() => navigate(90)}
                   className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-2xl"
                 >
@@ -1751,7 +1751,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
               {/* Notifications */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 mb-3">
-                <button 
+                <button
                   onClick={() => navigate(91)}
                   className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-2xl"
                 >
@@ -1770,7 +1770,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
               {/* Language */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-                <button 
+                <button
                   onClick={() => navigate(92)}
                   className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-2xl"
                 >
@@ -1791,10 +1791,10 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Security */}
             <div className="mb-6">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Security & Privacy</h2>
-              
+
               {/* Privacy Settings */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 mb-3">
-                <button 
+                <button
                   onClick={() => navigate(93)}
                   className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-2xl"
                 >
@@ -1834,10 +1834,10 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Support & Info */}
             <div className="mb-6">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Support & Information</h2>
-              
+
               {/* Help & Support */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 mb-3">
-                <button 
+                <button
                   onClick={() => navigate(94)}
                   className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-2xl"
                 >
@@ -1856,7 +1856,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
               {/* About App */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 mb-3">
-                <button 
+                <button
                   onClick={() => navigate(96)}
                   className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-2xl"
                 >
@@ -1875,7 +1875,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
               {/* Feedback */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
-                <button 
+                <button
                   onClick={() => navigate(97)}
                   className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-2xl"
                 >
@@ -1895,7 +1895,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
             {/* Logout */}
             <div className="mb-4">
-              <button 
+              <button
                 onClick={() => navigate(95)}
                 className="w-full bg-white rounded-2xl shadow-sm border border-red-200 px-5 py-4 flex items-center justify-between hover:bg-red-50 transition-colors"
               >
@@ -2065,34 +2065,34 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               <Bell className={`w-5 h-5 ${config.textColor} shrink-0 mt-0.5`} />
               <div>
                 <div className={`text-sm font-semibold ${config.textColor} mb-1`}>
-                  {aiPriority === 'Critical' ? 'Doctors Notified Immediately' : 
-                   aiPriority === 'Urgent' ? 'Doctors Will Be Notified' : 
-                   'Added to Review Queue'}
+                  {aiPriority === 'Critical' ? 'Doctors Notified Immediately' :
+                    aiPriority === 'Urgent' ? 'Doctors Will Be Notified' :
+                      'Added to Review Queue'}
                 </div>
                 <div className="text-xs text-slate-600">
-                  {aiPriority === 'Critical' ? 'Senior doctors and on-call staff have been alerted via emergency notification.' : 
-                   aiPriority === 'Urgent' ? 'Assigned doctors will receive a priority notification for review.' : 
-                   'This scan will appear in the standard doctor review dashboard.'}
+                  {aiPriority === 'Critical' ? 'Senior doctors and on-call staff have been alerted via emergency notification.' :
+                    aiPriority === 'Urgent' ? 'Assigned doctors will receive a priority notification for review.' :
+                      'This scan will appear in the standard doctor review dashboard.'}
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <button 
+              <button
                 onClick={() => navigate(34)}
                 className="w-full h-12 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold text-sm rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <History className="w-5 h-5" />
                 View in Scan History
               </button>
-              <button 
+              <button
                 onClick={() => navigate(25)}
                 className="w-full h-12 bg-white border border-slate-200 hover:bg-gray-50 text-slate-900 font-medium text-sm rounded-xl transition-all active:scale-[0.98]"
               >
                 Register New Patient
               </button>
-              <button 
+              <button
                 onClick={() => navigate(23)}
                 className="w-full h-12 text-slate-400 hover:text-slate-600 font-medium text-sm transition-colors"
               >
@@ -2126,16 +2126,14 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Theme Options */}
             <div className="space-y-3 mb-6">
               {/* Light Mode */}
-              <button 
+              <button
                 onClick={() => setAppTheme('light')}
-                className={`w-full bg-white rounded-2xl border-2 p-4 transition-all ${
-                  appTheme === 'light' ? 'border-[#2563EB] shadow-lg shadow-blue-100' : 'border-slate-100'
-                }`}
+                className={`w-full bg-white rounded-2xl border-2 p-4 transition-all ${appTheme === 'light' ? 'border-[#2563EB] shadow-lg shadow-blue-100' : 'border-slate-100'
+                  }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center transition-all ${
-                    appTheme === 'light' ? 'bg-blue-50' : 'bg-gray-100'
-                  }`}>
+                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center transition-all ${appTheme === 'light' ? 'bg-blue-50' : 'bg-gray-100'
+                    }`}>
                     <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 shadow-sm"></div>
                   </div>
                   <div className="flex-1 text-left">
@@ -2150,16 +2148,14 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               </button>
 
               {/* Dark Mode */}
-              <button 
+              <button
                 onClick={() => setAppTheme('dark')}
-                className={`w-full bg-white rounded-2xl border-2 p-4 transition-all ${
-                  appTheme === 'dark' ? 'border-[#2563EB] shadow-lg shadow-blue-100' : 'border-slate-100'
-                }`}
+                className={`w-full bg-white rounded-2xl border-2 p-4 transition-all ${appTheme === 'dark' ? 'border-[#2563EB] shadow-lg shadow-blue-100' : 'border-slate-100'
+                  }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center transition-all ${
-                    appTheme === 'dark' ? 'bg-blue-50' : 'bg-gray-100'
-                  }`}>
+                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center transition-all ${appTheme === 'dark' ? 'bg-blue-50' : 'bg-gray-100'
+                    }`}>
                     <div className="w-12 h-12 bg-slate-800 rounded-lg shadow-sm"></div>
                   </div>
                   <div className="flex-1 text-left">
@@ -2174,16 +2170,14 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               </button>
 
               {/* System Mode */}
-              <button 
+              <button
                 onClick={() => setAppTheme('system')}
-                className={`w-full bg-white rounded-2xl border-2 p-4 transition-all ${
-                  appTheme === 'system' ? 'border-[#2563EB] shadow-lg shadow-blue-100' : 'border-slate-100'
-                }`}
+                className={`w-full bg-white rounded-2xl border-2 p-4 transition-all ${appTheme === 'system' ? 'border-[#2563EB] shadow-lg shadow-blue-100' : 'border-slate-100'
+                  }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center transition-all ${
-                    appTheme === 'system' ? 'bg-blue-50' : 'bg-gray-100'
-                  }`}>
+                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center transition-all ${appTheme === 'system' ? 'bg-blue-50' : 'bg-gray-100'
+                    }`}>
                     <div className="w-12 h-12 rounded-lg flex overflow-hidden">
                       <div className="w-1/2 bg-white border-r border-gray-200"></div>
                       <div className="w-1/2 bg-slate-800"></div>
@@ -2254,10 +2248,10 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      defaultChecked 
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      defaultChecked
                       onChange={(e) => {
                         // Toggle logic here
                       }}
@@ -2280,10 +2274,10 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      defaultChecked 
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      defaultChecked
                       onChange={(e) => {
                         // Toggle logic here
                       }}
@@ -2306,10 +2300,10 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      defaultChecked 
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      defaultChecked
                       onChange={(e) => {
                         // Toggle logic here
                       }}
@@ -2374,17 +2368,15 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   <button
                     key={idx}
                     onClick={() => setSelectedLanguage(lang.name)}
-                    className={`w-full bg-white rounded-xl border p-4 flex items-center gap-4 transition-all ${
-                      selectedLanguage === lang.name 
-                        ? 'border-[#2563EB] shadow-md' 
+                    className={`w-full bg-white rounded-xl border p-4 flex items-center gap-4 transition-all ${selectedLanguage === lang.name
+                        ? 'border-[#2563EB] shadow-md'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-xs ${
-                      selectedLanguage === lang.name 
-                        ? 'bg-blue-50 text-[#2563EB]' 
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-xs ${selectedLanguage === lang.name
+                        ? 'bg-blue-50 text-[#2563EB]'
                         : 'bg-gray-100 text-slate-500'
-                    }`}>
+                      }`}>
                       {lang.code}
                     </div>
                     <div className="flex-1 text-left">
@@ -2408,17 +2400,15 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   <button
                     key={idx}
                     onClick={() => setSelectedLanguage(lang.name)}
-                    className={`w-full bg-white rounded-xl border p-4 flex items-center gap-4 transition-all ${
-                      selectedLanguage === lang.name 
-                        ? 'border-[#2563EB] shadow-md' 
+                    className={`w-full bg-white rounded-xl border p-4 flex items-center gap-4 transition-all ${selectedLanguage === lang.name
+                        ? 'border-[#2563EB] shadow-md'
                         : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                      }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-xs ${
-                      selectedLanguage === lang.name 
-                        ? 'bg-blue-50 text-[#2563EB]' 
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-xs ${selectedLanguage === lang.name
+                        ? 'bg-blue-50 text-[#2563EB]'
                         : 'bg-gray-100 text-slate-500'
-                    }`}>
+                      }`}>
                       {lang.code}
                     </div>
                     <div className="flex-1 text-left">
@@ -2581,7 +2571,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Common Topics */}
             <div className="mb-6">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Common Topics</h3>
-              
+
               {/* Search Bar */}
               <div className="mb-4">
                 <div className="relative">
@@ -2674,9 +2664,9 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                 <p className="text-sm text-slate-500 text-center mb-6">
                   Are you sure you want to sign out?
                 </p>
-                
+
                 <div className="space-y-3">
-                  <button 
+                  <button
                     onClick={() => {
                       setRole(null);
                       navigate(2);
@@ -2685,7 +2675,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   >
                     Yes, Log Out
                   </button>
-                  <button 
+                  <button
                     onClick={() => navigate(61)}
                     className="w-full bg-gray-100 text-slate-700 py-3.5 px-6 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors"
                   >
@@ -2735,7 +2725,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Version Info */}
             <div className="mb-6">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Version Information</h3>
-              
+
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-100">
                 <div className="px-5 py-4 flex items-center justify-between">
                   <span className="text-sm text-slate-600">Version</span>
@@ -2759,7 +2749,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* App Info */}
             <div className="mb-6">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Application</h3>
-              
+
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
                 <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-2xl border-b border-slate-100">
                   <div className="flex items-center gap-3">
@@ -2768,7 +2758,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
                 </button>
-                
+
                 <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <Shield className="w-5 h-5 text-blue-600" />
@@ -2776,7 +2766,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
                 </button>
-                
+
                 <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-b-2xl">
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-blue-600" />
@@ -2828,11 +2818,10 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   <button
                     key={type}
                     onClick={() => setFeedbackType(type)}
-                    className={`py-3 px-4 rounded-xl text-sm font-medium transition-all ${
-                      feedbackType === type
+                    className={`py-3 px-4 rounded-xl text-sm font-medium transition-all ${feedbackType === type
                         ? 'bg-[#2563EB] text-white shadow-md'
                         : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-300'
-                    }`}
+                      }`}
                   >
                     {type}
                   </button>
@@ -2897,7 +2886,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
 
           {/* Bottom Submit Button */}
           <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-4 shadow-lg">
-            <button 
+            <button
               onClick={() => {
                 toast.success('Feedback submitted successfully!');
                 navigate(61);
@@ -2929,7 +2918,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
               </button>
               <h1 className="text-lg font-medium">Edit Profile</h1>
             </div>
-            <button 
+            <button
               onClick={() => {
                 toast.success('Profile updated successfully!');
                 navigate(61);
@@ -2945,7 +2934,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Profile Photo Section - Separate Card */}
             <div className="mb-6">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Profile Photo</h3>
-              
+
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                 <div className="flex items-center gap-6">
                   {/* Photo Display */}
@@ -2953,7 +2942,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                     <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
                       <User className="w-12 h-12 text-[#2563EB]" />
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         const input = document.createElement('input');
                         input.type = 'file';
@@ -2976,9 +2965,9 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   <div className="flex-1">
                     <h4 className="text-sm font-semibold text-slate-900 mb-1">Update your photo</h4>
                     <p className="text-xs text-slate-500 mb-4">Recommended: Square image, at least 400x400px</p>
-                    
+
                     <div className="flex items-center gap-3">
-                      <button 
+                      <button
                         onClick={() => {
                           const input = document.createElement('input');
                           input.type = 'file';
@@ -2995,7 +2984,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                       >
                         Upload New
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           toast.success('Profile photo removed');
                         }}
@@ -3012,7 +3001,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Personal Information */}
             <div className="mb-6">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Personal Information</h3>
-              
+
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-100">
                 {/* Full Name */}
                 <div className="px-5 py-4">
@@ -3054,7 +3043,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Contact Information */}
             <div className="mb-6">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Contact Information</h3>
-              
+
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-100">
                 {/* Email */}
                 <div className="px-5 py-4">
@@ -3085,9 +3074,9 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
             {/* Account Actions */}
             <div className="mb-6">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 px-1">Account Actions</h3>
-              
+
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
-                <button 
+                <button
                   onClick={() => navigate(67)}
                   className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-2xl border-b border-slate-100"
                 >
@@ -3097,7 +3086,7 @@ export const TechnicianScreens = ({ screenId, navigate, setRole }: any) => {
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
                 </button>
-                
+
                 <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-b-2xl">
                   <div className="flex items-center gap-3">
                     <Shield className="w-5 h-5 text-green-600" />

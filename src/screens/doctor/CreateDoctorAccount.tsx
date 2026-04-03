@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { ArrowLeft, User, Lock, Phone, Activity, Shield, Check, X } from 'lucide-react';
 import { registerDoctor } from '../../lib/api';
 import { toast } from 'sonner';
-import { validatePassword } from '../../lib/validation';
+import { validatePassword, validatePhoneNumber } from '../../lib/validation';
 
 export default function CreateDoctorAccount() {
   const navigate = useNavigate();
@@ -30,13 +30,21 @@ export default function CreateDoctorAccount() {
       return;
     }
 
+    const phoneValidation = validatePhoneNumber(formData.phoneNumber);
+    if (!phoneValidation.isValid) {
+      toast.error(phoneValidation.message);
+      return;
+    }
+
     try {
       const loadingToast = toast.loading('Creating account...');
+      const cleanedPhone = formData.phoneNumber.replace(/[\s\-]/g, '').replace(/^\+91/, '');
+      
       await registerDoctor({
         first_name: formData.firstName,
         last_name: formData.lastName,
         hospital_email: formData.email,
-        phone_number: formData.phoneNumber,
+        phone_number: cleanedPhone,
         role_requested: formData.roleRequested,
         password: formData.password,
         confirm_password: formData.confirmPassword,

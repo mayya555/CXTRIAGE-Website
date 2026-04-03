@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Activity, Eye, EyeOff, ArrowLeft, User, Lock } from 'lucide-react';
+import { loginDoctor } from '../../lib/api';
 
 interface DoctorLoginScreenProps {
   navigate: (screenId: number) => void;
@@ -10,10 +11,30 @@ export const DoctorLoginScreen = ({ navigate, setRole }: DoctorLoginScreenProps)
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    setRole('doctor');
-    navigate(36); // Navigate directly to Doctor Dashboard
+  const handleLogin = async () => {
+    if (!username || !password) {
+      setError('Please enter both username and password');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await loginDoctor({ email: username, password });
+      // Assuming response has token
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('userRole', 'doctor');
+      setRole('doctor');
+      navigate(36); // Navigate to Doctor Dashboard
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -54,7 +75,7 @@ export const DoctorLoginScreen = ({ navigate, setRole }: DoctorLoginScreenProps)
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                 <User className="w-4 h-4" strokeWidth={2} />
               </div>
-              <input 
+              <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -71,14 +92,14 @@ export const DoctorLoginScreen = ({ navigate, setRole }: DoctorLoginScreenProps)
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                 <Lock className="w-4 h-4" strokeWidth={2} />
               </div>
-              <input 
+              <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full h-12 bg-slate-50/50 border border-slate-100 rounded-xl pl-11 pr-11 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:bg-white focus:border-blue-200 transition-all"
               />
-              <button 
+              <button
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
               >
@@ -90,7 +111,7 @@ export const DoctorLoginScreen = ({ navigate, setRole }: DoctorLoginScreenProps)
           {/* Forgot Password Link */}
           <div className="flex justify-end items-center gap-2 pt-1">
             <div className="w-1.5 h-1.5 bg-pink-500 rounded-full"></div>
-            <button 
+            <button
               onClick={() => navigate(75)}
               className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
             >
@@ -99,19 +120,26 @@ export const DoctorLoginScreen = ({ navigate, setRole }: DoctorLoginScreenProps)
           </div>
 
           {/* Sign In Button */}
-          <button 
+          <button
             onClick={handleLogin}
-            className="w-full h-12 bg-[#2563EB] hover:bg-blue-700 text-white font-medium text-sm rounded-full shadow-md shadow-blue-200 transition-all active:scale-[0.98] mt-6"
+            disabled={loading}
+            className="w-full h-12 bg-[#2563EB] hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium text-sm rounded-full shadow-md shadow-blue-200 transition-all active:scale-[0.98] mt-6"
           >
-            Sign In
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
+
+          {error && (
+            <div className="text-red-500 text-sm text-center mt-2">
+              {error}
+            </div>
+          )}
 
           {/* Create Account Link */}
           <div className="text-center pt-6">
             <p className="text-sm text-slate-400">
               Don't have an account?
             </p>
-            <button 
+            <button
               onClick={() => navigate(67)}
               className="font-bold text-slate-900 hover:text-[#2563EB] text-sm transition-colors mt-1"
             >

@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { ArrowLeft, User, Lock, Phone, Activity, Shield, Check, X, Eye, EyeOff } from 'lucide-react';
 import { registerTechnician } from '../../lib/api';
 import { toast } from 'sonner';
-import { validatePassword } from '../../lib/validation';
+import { validatePassword, validatePhoneNumber } from '../../lib/validation';
 
 export default function CreateTechnicianAccount() {
   const navigate = useNavigate();
@@ -32,13 +32,21 @@ export default function CreateTechnicianAccount() {
       return;
     }
 
+    const phoneValidation = validatePhoneNumber(formData.phoneNumber);
+    if (!phoneValidation.isValid) {
+      toast.error(phoneValidation.message);
+      return;
+    }
+
     try {
       const loadingToast = toast.loading('Creating account...');
+      const cleanedPhone = formData.phoneNumber.replace(/[\s\-]/g, '').replace(/^\+91/, '');
+      
       await registerTechnician({
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
-        phone_number: formData.phoneNumber,
+        phone_number: cleanedPhone,
         role_requested: formData.roleRequested,
         password: formData.password,
         confirm_password: formData.confirmPassword,

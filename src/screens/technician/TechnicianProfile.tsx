@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/button';
 import { Switch } from '../../components/ui/switch';
 import { getTechnicianProfile, updateTechnicianProfile } from '../../lib/api';
 import { toast } from 'sonner';
+import { validatePhoneNumber } from '../../lib/validation';
 
 const monthlyScans = [
   { month: 'Oct', scans: 162 },
@@ -111,15 +112,22 @@ export default function TechnicianProfile() {
   });
 
   const handleSave = async () => {
+    const phoneValidation = validatePhoneNumber(formData.phone);
+    if (!phoneValidation.isValid) {
+      toast.error(phoneValidation.message);
+      return;
+    }
+
     try {
       const names = formData.name.split(' ');
       const firstName = names[0] || '';
       const lastName = names.slice(1).join(' ') || '';
+      const cleanedPhone = formData.phone.replace(/[\s\-]/g, '').replace(/^\+91/, '');
       
       await updateTechnicianProfile(technicianId, {
         first_name: firstName,
         last_name: lastName,
-        phone_number: formData.phone
+        phone_number: cleanedPhone
       });
       
       localStorage.setItem('technicianName', formData.name);

@@ -147,7 +147,7 @@ export default function TechnicianDashboard() {
         if (isInitialLoad) setLoading(true);
         const [dashboard, history] = await Promise.all([
           getTechnicianDashboard(technicianId),
-          getScanHistory()
+          getScanHistory(technicianId)
         ]);
         setStatsData(dashboard);
         setScanHistory(history);

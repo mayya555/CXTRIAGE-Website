@@ -1,18 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { WebAppLayout } from '../../components/layout/WebAppLayout';
 import { Search, ChevronRight, Users, Filter, Download } from 'lucide-react';
-import { mockPatientHistory } from '../../lib/data';
+import { getPatientHistory } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function PatientHistoryList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [patients, setPatients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mockPatientHistory.filter(p => {
-    const matchSearch = p.patient.toLowerCase().includes(search.toLowerCase()) ||
-      p.mrn.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || p.status.toLowerCase() === statusFilter;
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const storedId = localStorage.getItem('doctorId');
+        const doctorId = parseInt(storedId || '0');
+
+        if (!doctorId || isNaN(doctorId) || doctorId <= 0) {
+          toast.error('Session expired. Please log in again.');
+          navigate('/login');
+          return;
+        }
+
+        const data = await getPatientHistory(doctorId);
+        
+        // Group by patient name or MRN to show unique patients
+        const grouped: Record<string, any> = {};
+        data.forEach((item: any) => {
+          const key = item.mrn || item.patient_name;
+          if (!grouped[key]) {
+            grouped[key] = {
+              id: item.id,
+              patient: item.patient_name,
+              mrn: item.mrn,
+              age: item.patient_age,
+              lastVisit: new Date(item.created_at).toLocaleDateString(),
+              totalScans: 1,
+              diagnosis: item.final_diagnosis || item.diagnosis,
+              status: item.priority,
+            };
+          } else {
+            grouped[key].totalScans += 1;
+            // Update last visit if newer
+            if (new Date(item.created_at) > new Date(grouped[key].lastVisit)) {
+              grouped[key].lastVisit = new Date(item.created_at).toLocaleDateString();
+              grouped[key].diagnosis = item.final_diagnosis || item.diagnosis;
+            }
+          }
+        });
+        
+        setPatients(Object.values(grouped));
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to fetch patient history');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, []);
+
+  const filtered = patients.filter(p => {
+    const matchSearch = (p.patient || '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.mrn || '').toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || (p.status || '').toLowerCase() === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -27,7 +79,7 @@ export default function PatientHistoryList() {
     <WebAppLayout
       role="doctor"
       title="Patient History"
-      subtitle={`${mockPatientHistory.length} patients in your care history`}
+      subtitle={`${patients.length} patients in your care history`}
       breadcrumbs={[
         { label: 'Dashboard', path: '/doctor/dashboard' },
         { label: 'Patient History' },
@@ -82,13 +134,13 @@ export default function PatientHistoryList() {
               {filtered.map((p) => (
                 <tr
                   key={p.id}
-                  onClick={() => navigate(`/doctor/patient-history/${p.id}`)}
+                  onClick={() => navigate(`/doctor/patient-history/${encodeURIComponent(p.patient)}`)}
                   className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-[10px] font-bold text-[#2563EB]">{p.patient.split(' ').map(n => n[0]).join('')}</span>
+                      <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-[9px] font-bold text-[#2563EB]">{(p.patient || 'P').split(' ').map((n: string) => n[0]).join('')}</span>
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-slate-800">{p.patient}</p>

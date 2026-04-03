@@ -118,7 +118,7 @@ export default function ScanHistoryDetail() {
                 { label: 'Age / Gender', value: `58y / ${scan.patient.gender}` },
                 { label: 'MRN', value: scan.patient.mrn, mono: true },
                 { label: 'Date of Birth', value: scan.patient.date_of_birth },
-                { label: 'Technician', value: 'Sarah Williams' },
+                { label: 'Technician', value: scan.technician_name || 'N/A' },
               ].map((item, i) => (
                 <div key={i} className="flex justify-between">
                   <span className="text-xs text-slate-400">{item.label}</span>
@@ -137,9 +137,9 @@ export default function ScanHistoryDetail() {
               }
               <h3 className="text-sm font-semibold text-slate-700">AI Finding</h3>
             </div>
-            <p className="text-sm font-medium text-slate-800">{scan.quality_check.message}</p>
+            <p className="text-sm font-medium text-slate-800">{scan.ai_finding && scan.ai_finding !== 'N/A' ? scan.ai_finding : scan.quality_check.message}</p>
             <p className="text-xs text-slate-400 mt-1">
-              {scan.scan_status === 'Completed' ? 'Scan processed successfully' : 'Processing in progress...'}
+              {scan.ai_finding && scan.ai_finding !== 'N/A' ? 'AI Classification complete' : scan.scan_status === 'Completed' ? 'Scan processed successfully' : 'Processing in progress...'}
             </p>
           </div>
 

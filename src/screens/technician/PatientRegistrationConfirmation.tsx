@@ -5,7 +5,7 @@ import { CheckCircle, ChevronRight, User, Calendar, Scan } from 'lucide-react';
 export default function PatientRegistrationConfirmation() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { patientId, patientName, mrn } = location.state || { patientId: 0, patientName: 'N/A', mrn: 'N/A' };
+  const { patientId, patientName, mrn, urgency, scanType } = location.state || { patientId: 0, patientName: 'N/A', mrn: 'N/A', urgency: 'Routine', scanType: 'PA (Postero-Anterior)' };
 
   return (
     <WebAppLayout
@@ -33,8 +33,8 @@ export default function PatientRegistrationConfirmation() {
               {[
                 { icon: User, label: 'Patient Name', value: patientName },
                 { icon: User, label: 'MRN', value: mrn },
-                { icon: Scan, label: 'Scan Type', value: 'PA (Postero-Anterior)' },
-                { icon: CheckCircle, label: 'Urgency', value: 'Routine' },
+                { icon: Scan, label: 'Scan Type', value: scanType || 'PA (Postero-Anterior)' },
+                { icon: CheckCircle, label: 'Urgency', value: urgency || 'Routine' },
               ].map((item, i) => {
                 const Icon = item.icon;
                 return (

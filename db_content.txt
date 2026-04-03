@@ -1,0 +1,17 @@
+--- Doctors (chestxraydb) ---
+ID: 11 | Name: Mallavarapu Mahendra | Email: mahendramallavarapu0@gmail.com | Pwd: Ammulu@2004
+ID: 12 | Name: Sai Tejaswi | Email: saitejaswi71@gmail.com | Pwd: Ammulu@1987
+ID: 13 | Name: Arjun Reddy | Email: yaswanthmallavarapu8@gmail.com | Pwd: Ammulu@4567
+ID: 14 | Name: John Reddy | Email: srilathamallarapumallarapu@gmail.com | Pwd: Ammulu@345
+ID: 15 | Name: John doe | Email: john@gmail.com | Pwd: Ammulu@9000
+ID: 16 | Name: yachendra nath | Email: yachendra6310@gmail.com | Pwd: Yach@123
+ID: 17 | Name: Chaitanya prakash | Email: chaitanyaprakashkonisetty@gmail.com | Pwd: Chaitu@2004
+ID: 20 | Name: Swarna Kousik | Email: kousikssvv34@gmail.com | Pwd: Chotu@2006
+ID: 21 | Name: Deva Devaa | Email: punugotideva618@gmail.com | Pwd: Deva@1234
+ID: 22 | Name: pushpa kanth | Email: srik29924@gmail.com | Pwd: Srik@12345
+ID: 23 | Name: vamsi krishna | Email: pvvamsik2005@gmail.com | Pwd: Kohli@2026
+ID: 24 | Name: jaanu reddy | Email: jaanu@gmail.com | Pwd: Jaanu@1987
+
+--- Technicians (chestxraydb) ---
+ID: 7 | Name: greeshma malineni | Email: mahendramallavarapu532@gmail.com | Pwd: Ammulu@2004
+ID: 8 | Name: chotu kisik | Email: mahiiloveubangaram2004@gmail.com | Pwd: Ammulu@298

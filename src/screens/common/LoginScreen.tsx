@@ -29,16 +29,18 @@ export default function LoginScreen() {
     try {
       if (role === 'technician') {
         const response = await loginTechnician({ email: username, password });
-        localStorage.setItem('technicianId', response.technician_id);
-        localStorage.setItem('technicianName', response.name);
+        // Backend returns technician object: { technician: { id, name }, ... }
+        localStorage.setItem('technicianId', response.technician.id.toString());
+        localStorage.setItem('technicianName', response.technician.name);
         localStorage.setItem('userRole', 'technician');
         toast.success('Login successful!');
         navigate('/technician/dashboard');
       } else {
         const response = await loginDoctor({ email: username, password });
-        localStorage.setItem('doctorId', response.doctor_id);
-        localStorage.setItem('doctorName', response.name);
-        localStorage.setItem('doctorEmail', response.email);
+        // Backend returns doctor object: { doctor: { id, name, email }, ... }
+        localStorage.setItem('doctorId', response.doctor.id.toString());
+        localStorage.setItem('doctorName', response.doctor.name);
+        localStorage.setItem('doctorEmail', response.doctor.email);
         localStorage.setItem('userRole', 'doctor');
         toast.success('Login successful!');
         navigate('/doctor/dashboard');

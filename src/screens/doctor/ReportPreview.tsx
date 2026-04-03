@@ -1,12 +1,44 @@
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { WebAppLayout } from '../../components/layout/WebAppLayout';
 import { Download, Share2, ArrowLeft, CheckCircle, Activity } from 'lucide-react';
-import { mockCases, mockFindings } from '../../lib/data';
+import { getCaseById } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function ReportPreview() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const caseData = mockCases.find(c => c.id === id) || mockCases[0];
+  const [caseData, setCaseData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCase = async () => {
+      if (!id) return;
+      try {
+        const data = await getCaseById(id);
+        setCaseData(data);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to fetch case details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCase();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <WebAppLayout role="doctor" title="Loading..." breadcrumbs={[]}>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB]"></div>
+        </div>
+      </WebAppLayout>
+    );
+  }
+
+  if (!caseData) return null;
+
+  const findingsList = caseData.findings || [];
 
   return (
     <WebAppLayout
@@ -57,8 +89,8 @@ export default function ReportPreview() {
               </div>
               <div className="text-right">
                 <p className="font-bold text-lg">Radiology Report</p>
-                <p className="text-blue-300 text-xs">Report ID: RPT-2026-1240</p>
-                <p className="text-blue-300 text-xs">Date: March 6, 2026</p>
+                <p className="text-blue-300 text-xs">Report ID: RPT-{caseData.id}</p>
+                <p className="text-blue-300 text-xs">Date: {new Date().toLocaleDateString()}</p>
               </div>
             </div>
           </div>
@@ -67,10 +99,10 @@ export default function ReportPreview() {
             {/* Patient Info */}
             <div className="grid grid-cols-3 gap-4 p-5 bg-slate-50 rounded-xl mb-6">
               {[
-                { label: 'Patient Name', value: caseData.patient },
-                { label: 'Age / Gender', value: `${caseData.age}y / ${caseData.gender}` },
-                { label: 'MRN', value: caseData.mrn, mono: true },
-                { label: 'Date of Study', value: caseData.date },
+                { label: 'Patient Name', value: caseData.patient_name },
+                { label: 'Age / Gender', value: `${caseData.patient_age}y / ${caseData.patient_gender}` },
+                { label: 'MRN', value: caseData.case_code, mono: true },
+                { label: 'Date of Study', value: caseData.created_at },
                 { label: 'Referring Physician', value: 'Dr. Sarah Connor' },
                 { label: 'Priority', value: caseData.priority },
               ].map((item, i) => (
@@ -85,23 +117,24 @@ export default function ReportPreview() {
               {/* Technique */}
               <section>
                 <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Technique</h3>
-                <p className="text-sm text-slate-700">Portable AP chest radiograph obtained with digital detector. Single view. Technical factors: 125 kV, 5 mAs. AI-assisted analysis performed using CXRT AI v3.2 (Confidence threshold: 60%).</p>
+                <p className="text-sm text-slate-700">Portable AP chest radiograph obtained with digital detector. Single view. Technical factors: 125 kV, 5 mAs. AI-assisted analysis performed using CXRT AI engine.</p>
               </section>
 
               {/* Findings */}
               <section>
-                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Findings</h3>
+                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Confirmed Findings</h3>
                 <div className="space-y-2.5">
-                  {mockFindings.map((f, i) => (
+                  {findingsList.length === 0 && <p className="text-sm text-slate-400 italic">No specific findings confirmed.</p>}
+                  {findingsList.map((f: any, i: number) => (
                     <div key={i} className="flex items-start gap-3">
                       <span className="text-slate-400 font-mono text-sm mt-0.5">{i + 1}.</span>
                       <div className="flex-1">
                         <span className="text-sm text-slate-700 font-medium">{f.name} </span>
                         <span className="text-sm text-slate-600">— Located in {f.region}.</span>
                         <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          f.severity === 'Critical' ? 'bg-red-100 text-red-700' :
-                          f.severity === 'High' ? 'bg-orange-100 text-orange-700' :
-                          f.severity === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                          f.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                          f.severity === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                          f.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
                         }`}>
                           {f.severity} · AI {f.confidence}%
                         </span>
@@ -115,21 +148,17 @@ export default function ReportPreview() {
               <section>
                 <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Impression</h3>
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <ol className="space-y-1.5 text-sm text-slate-700">
-                    <li>1. Right lower lobe pneumonia, moderate severity.</li>
-                    <li>2. Small left pleural effusion.</li>
-                    <li>3. Cardiomegaly — cardiac silhouette enlarged.</li>
-                    <li>4. No pneumothorax detected.</li>
-                    <li>5. No acute bony abnormality.</li>
-                  </ol>
+                  <p className="text-sm text-slate-700 whitespace-pre-line">
+                    {caseData.ai_result || 'No significant findings detected.'}
+                  </p>
                 </div>
               </section>
 
               {/* Recommendation */}
               <section>
-                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Recommendation</h3>
-                <p className="text-sm text-slate-700">
-                  Clinical correlation recommended. Consider repeat CXR in 4–6 weeks after treatment. Cardiology referral for cardiomegaly evaluation.
+                <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Recommendation / Notes</h3>
+                <p className="text-sm text-slate-700 whitespace-pre-line">
+                  {caseData.clinical_notes || 'Clinical correlation recommended.'}
                 </p>
               </section>
 
@@ -137,18 +166,18 @@ export default function ReportPreview() {
               <div className="border-t border-slate-200 pt-5 mt-6">
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-lg font-bold italic font-serif text-slate-800">Dr. Michael Chen</p>
+                    <p className="text-lg font-bold italic font-serif text-slate-800">Verified Electronic Signature</p>
                     <p className="text-sm text-slate-600 mt-1">Lead Radiologist, MD, FRCR</p>
-                    <p className="text-xs text-slate-400 mt-0.5">License: RAD-789012 · Dept. of Radiology</p>
+                    <p className="text-xs text-slate-400 mt-0.5">License: RAD-INTERNAL · Dept. of Radiology</p>
                     <div className="flex items-center gap-1.5 mt-2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      <p className="text-xs text-green-600 font-medium">Electronically signed — March 6, 2026 at 14:32 UTC</p>
+                      <p className="text-xs text-green-600 font-medium">Electronically signed — {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()} UTC</p>
                     </div>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <p className="text-[10px] text-slate-400 text-center mb-1">AI Assisted</p>
-                    <div className="w-16 h-16 bg-slate-200 rounded flex items-center justify-center">
-                      <div className="grid grid-cols-4 gap-0.5">
+                    <div className="w-16 h-16 bg-slate-200 rounded flex items-center justify-center overflow-hidden">
+                       <div className="grid grid-cols-4 gap-0.5">
                         {Array.from({ length: 16 }, (_, i) => (
                           <div key={i} className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-slate-700' : 'bg-white'} rounded-sm`} />
                         ))}
@@ -174,3 +203,4 @@ export default function ReportPreview() {
     </WebAppLayout>
   );
 }
+

@@ -1,19 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { WebAppLayout } from '../../components/layout/WebAppLayout';
 import { User, Calendar, Phone, MapPin, ChevronRight, AlertCircle } from 'lucide-react';
-import { registerPatient } from '../../lib/api';
+import { registerPatient, getDoctors } from '../../lib/api';
 import { toast } from 'sonner';
 
 export default function PatientRegistration() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [doctors, setDoctors] = useState<any[]>([]);
   const [form, setForm] = useState({
     firstName: '', lastName: '', dob: '', gender: 'Male',
     mrn: '', phone: '', address: '', clinicalNotes: '',
-    referringDoctor: '', scanType: 'PA (Postero-Anterior)', urgency: 'Routine',
+    referringDoctorId: '', scanType: 'PA (Postero-Anterior)', urgency: 'Routine',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const data = await getDoctors();
+        setDoctors(data);
+        if (data.length > 0) {
+          setForm(prev => ({ ...prev, referringDoctorId: data[0].doctor_id.toString() }));
+        }
+      } catch (error: any) {
+        toast.error('Failed to load doctors');
+      }
+    };
+    fetchDoctors();
+  }, []);
 
   const handleChange = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -26,6 +42,7 @@ export default function PatientRegistration() {
     if (!form.lastName.trim()) e.lastName = 'Required';
     if (!form.dob) e.dob = 'Required';
     if (!form.mrn.trim()) e.mrn = 'Required';
+    if (!form.referringDoctorId) e.referringDoctorId = 'Required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -45,7 +62,13 @@ export default function PatientRegistration() {
       
       toast.success(response.message || 'Patient registered successfully');
       navigate('/technician/patient-registration-confirmation', { 
-        state: { patientId: response.id, patientName: response.full_name, mrn: response.mrn } 
+        state: { 
+          patientId: response.id || response.patient_id, 
+          patientName: `${form.firstName} ${form.lastName}`, 
+          mrn: response.mrn,
+          doctorId: parseInt(form.referringDoctorId),
+          urgency: form.urgency
+        } 
       });
     } catch (error: any) {
       toast.error(error.message || 'Failed to register patient');
@@ -135,8 +158,18 @@ export default function PatientRegistration() {
                   <input value={form.address} onChange={e => handleChange('address', e.target.value)} className={inputClass('address')} placeholder="123 Main St, City, State" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Referring Doctor</label>
-                  <input value={form.referringDoctor} onChange={e => handleChange('referringDoctor', e.target.value)} className={inputClass('referringDoctor')} placeholder="Dr. Name" />
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Assign to Doctor *</label>
+                  <select 
+                    value={form.referringDoctorId} 
+                    onChange={e => handleChange('referringDoctorId', e.target.value)} 
+                    className={inputClass('referringDoctorId')}
+                  >
+                    <option value="">Select a doctor...</option>
+                    {doctors.map(d => (
+                      <option key={d.doctor_id} value={d.doctor_id}>{d.name}</option>
+                    ))}
+                  </select>
+                  {errors.referringDoctorId && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.referringDoctorId}</p>}
                 </div>
               </div>
             </div>

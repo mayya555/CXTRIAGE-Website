@@ -1,40 +1,94 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { WebAppLayout } from '../../components/layout/WebAppLayout';
 import { Edit3, Plus, Trash2, ChevronRight, AlertCircle } from 'lucide-react';
-import { mockCases } from '../../lib/data';
+import { getCaseById, updateCaseDiagnosis } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function DiagnosisModification() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const caseData = mockCases.find(c => c.id === id) || mockCases[0];
+  const [caseData, setCaseData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [diagnoses, setDiagnoses] = useState([
-    { id: 1, finding: 'Pneumonia (Right Lower Lobe)', icd: 'J18.9', severity: 'Critical', modified: false },
-    { id: 2, finding: 'Pleural Effusion', icd: 'J90', severity: 'High', modified: true },
-    { id: 3, finding: 'Cardiomegaly', icd: 'I51.7', severity: 'Medium', modified: false },
-  ]);
+  const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [reason, setReason] = useState('');
 
-  const removeDiagnosis = (id: number) => {
-    setDiagnoses(prev => prev.filter(d => d.id !== id));
+  useEffect(() => {
+    const fetchCase = async () => {
+      if (!id) return;
+      try {
+        const data = await getCaseById(id);
+        setCaseData(data);
+        if (data.findings) {
+          setDiagnoses(data.findings.map((f: any, i: number) => ({
+            id: i,
+            finding: f.name,
+            icd: f.icd_code || '',
+            severity: f.severity,
+            modified: false
+          })));
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to fetch case details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCase();
+  }, [id]);
+
+  const removeDiagnosis = (diagId: number) => {
+    setDiagnoses(prev => prev.filter(d => d.id !== diagId));
   };
 
   const addDiagnosis = () => {
     setDiagnoses(prev => [...prev, {
-      id: Date.now(), finding: 'New Finding', icd: '', severity: 'Medium', modified: true
+      id: Date.now(), finding: 'New Finding', icd: '', severity: 'MEDIUM', modified: true
     }]);
   };
 
-  const updateDiagnosis = (id: number, field: string, value: string) => {
-    setDiagnoses(prev => prev.map(d => d.id === id ? { ...d, [field]: value, modified: true } : d));
+  const updateDiagnosis = (diagId: number, field: string, value: string) => {
+    setDiagnoses(prev => prev.map(d => d.id === diagId ? { ...d, [field]: value, modified: true } : d));
   };
+
+  const handleProceed = async () => {
+    if (!id) return;
+    setSubmitting(true);
+    try {
+      await updateCaseDiagnosis(id, {
+        status: 'COMPLETED',
+        confirmed_findings: diagnoses.map(d => d.finding),
+        clinical_notes: reason,
+        icd_code: diagnoses[0]?.icd || '', // Taking first as primary for now or we could sum them
+      });
+      toast.success('Modified diagnosis saved successfully!');
+      navigate(`/doctor/report-generation/${id}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save modifications');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <WebAppLayout role="doctor" title="Loading..." breadcrumbs={[]}>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB]"></div>
+        </div>
+      </WebAppLayout>
+    );
+  }
+
+  if (!caseData) return null;
 
   return (
     <WebAppLayout
       role="doctor"
       title="Modify Diagnosis"
-      subtitle={`Override AI findings for ${caseData.patient}`}
+      subtitle={`Override AI findings for ${caseData.patient_name}`}
       breadcrumbs={[
         { label: 'Dashboard', path: '/doctor/dashboard' },
         { label: 'Diagnosis', path: `/doctor/diagnosis-confirmation/${id}` },
@@ -48,7 +102,7 @@ export default function DiagnosisModification() {
           <div>
             <p className="text-sm font-bold text-amber-700">Clinical Override</p>
             <p className="text-xs text-amber-600 mt-1">
-              You are modifying the AI-generated diagnosis. All changes will be attributed to Dr. Michael Chen and recorded in the audit log.
+              You are modifying the AI-generated diagnosis. All changes will be recorded in the audit log for clinical responsibility.
             </p>
           </div>
         </div>
@@ -95,10 +149,10 @@ export default function DiagnosisModification() {
                         onChange={e => updateDiagnosis(d.id, 'severity', e.target.value)}
                         className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 bg-white"
                       >
-                        <option value="Critical">Critical</option>
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Normal">Normal</option>
+                        <option value="CRITICAL">Critical</option>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="NORMAL">Normal</option>
                       </select>
                       <button
                         onClick={() => removeDiagnosis(d.id)}
@@ -132,13 +186,13 @@ export default function DiagnosisModification() {
         {/* Actions */}
         <div className="flex gap-3">
           <button
-            onClick={() => navigate(`/doctor/report-generation/${id}`)}
-            disabled={!reason}
+            onClick={handleProceed}
+            disabled={!reason || submitting}
             className={`flex-1 py-3.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
               reason ? 'bg-[#2563EB] text-white hover:bg-blue-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-            }`}
+            } disabled:opacity-50`}
           >
-            Proceed to Report <ChevronRight className="w-4 h-4" />
+            {submitting ? 'Saving...' : 'Proceed to Report'} {!submitting && <ChevronRight className="w-4 h-4" />}
           </button>
           <button
             onClick={() => navigate(`/doctor/diagnosis-confirmation/${id}`)}

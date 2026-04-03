@@ -7,6 +7,18 @@ export interface PasswordValidationResult {
   isMinLength: boolean;
 }
 
+export function validatePhoneNumber(phone: string): { isValid: boolean; message: string } {
+  // Strip any spaces, dashes, or country code prefix
+  const cleaned = phone.replace(/[\s\-]/g, '').replace(/^\+91/, '');
+  if (!/^\d{10}$/.test(cleaned)) {
+    return { isValid: false, message: 'Phone number must be exactly 10 digits' };
+  }
+  if (!/^[6-9]/.test(cleaned)) {
+    return { isValid: false, message: 'Phone number must start with 6, 7, 8, or 9' };
+  }
+  return { isValid: true, message: '' };
+}
+
 export function validatePassword(password: string): PasswordValidationResult {
   const hasUppercase = /[A-Z]/.test(password);
   const hasLowercase = /[a-z]/.test(password);

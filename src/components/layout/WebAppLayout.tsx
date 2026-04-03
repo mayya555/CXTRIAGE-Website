@@ -24,17 +24,20 @@ const doctorNav: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/doctor/dashboard' },
   { label: 'Case Queue', icon: FileText, path: '/doctor/new-cases', badge: 8 },
   { label: 'Critical Alerts', icon: AlertCircle, path: '/doctor/critical-alerts', badge: 3 },
-  { label: 'AI Analysis', icon: Brain, path: '/doctor/ai-analysis/1' },
   { label: 'Patient History', icon: Users, path: '/doctor/patient-history' },
-  { label: 'Reports', icon: ClipboardList, path: '/doctor/report-preview/1' },
+  { label: 'Reports', icon: ClipboardList, path: '/doctor/patient-history' },
 ];
 
-const notifications = [
-  { id: 1, type: 'critical', title: 'Critical Finding', message: 'James Brown — Tension Pneumothorax (95%)', time: '2 min ago', read: false },
-  { id: 2, type: 'critical', title: 'Critical Alert', message: 'Robert Wilson — Pneumonia + Pleural Effusion', time: '18 min ago', read: false },
-  { id: 3, type: 'info', title: 'AI Analysis Complete', message: 'Mary Johnson — Cardiomegaly detected', time: '1 hr ago', read: true },
-  { id: 4, type: 'success', title: 'Report Shared', message: 'Case MRN-002101 report sent to referring MD', time: '2 hrs ago', read: true },
-];
+import { getNotifications } from '../../lib/api';
+
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
 
 interface WebAppLayoutProps {
   children: React.ReactNode;
@@ -50,13 +53,32 @@ export function WebAppLayout({ children, role, title, subtitle, breadcrumbs }: W
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
+
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const id = parseInt(localStorage.getItem(role === 'technician' ? 'technicianId' : 'doctorId') || '1');
+        const data = await getNotifications(id, role);
+        setNotifications(data);
+      } catch (err) {
+        console.error('Failed to fetch notifications', err);
+      }
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 5000); // 5s poll for real-time
+    return () => clearInterval(interval);
+  }, [role]);
 
   const navItems = role === 'technician' ? technicianNav : doctorNav;
-  const storedName = localStorage.getItem('technicianName') || localStorage.getItem('doctorName');
+  const storedName = role === 'technician' ? localStorage.getItem('technicianName') : localStorage.getItem('doctorName');
+  const storedRole = role === 'technician' ? localStorage.getItem('technicianRole') : localStorage.getItem('doctorSpecialization');
+  
   const userName = storedName || (role === 'technician' ? 'Sarah Williams' : 'Dr. Michael Chen');
-  const userRole = role === 'technician' ? 'Senior Radiographer' : 'Lead Radiologist';
+  const userRole = storedRole || (role === 'technician' ? 'Senior Radiographer' : 'Radiologist');
+  const userPhoto = role === 'technician' ? localStorage.getItem('technicianPhoto') : localStorage.getItem('doctorPhoto');
   const initials = userName.split(' ').map(n => n[0]).join('');
   const profilePath = role === 'technician' ? '/technician/profile' : '/doctor/profile';
   const settingsPath = role === 'technician' ? '/technician/settings' : '/doctor/settings';
@@ -75,9 +97,14 @@ export function WebAppLayout({ children, role, title, subtitle, breadcrumbs }: W
   }, []);
 
   const isNavActive = (path: string) => {
-    if (path === '/doctor/ai-analysis/1') return location.pathname.startsWith('/doctor/ai-analysis') || location.pathname.startsWith('/doctor/ai-heatmap');
-    if (path === '/doctor/report-preview/1') return location.pathname.startsWith('/doctor/report');
     return location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
+  };
+
+  const handleNotificationClick = (n: any) => {
+    setShowNotifications(false);
+    if (n.case_id) {
+       navigate(`/doctor/report-generation/${n.case_id}`);
+    }
   };
 
   return (
@@ -171,9 +198,13 @@ export function WebAppLayout({ children, role, title, subtitle, breadcrumbs }: W
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => navigate(profilePath)}
-              className="w-8 h-8 bg-gradient-to-br from-[#2563EB] to-blue-700 rounded-full flex items-center justify-center flex-shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all"
+              className="w-8 h-8 bg-gradient-to-br from-[#2563EB] to-blue-700 rounded-full flex items-center justify-center flex-shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all overflow-hidden shadow-inner"
             >
-              <span className="text-[11px] font-bold text-white">{initials}</span>
+              {userPhoto ? (
+                <img src={userPhoto} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[11px] font-bold text-white">{initials}</span>
+              )}
             </button>
             {sidebarOpen && (
               <>
@@ -267,9 +298,15 @@ export function WebAppLayout({ children, role, title, subtitle, breadcrumbs }: W
                   </div>
                 </div>
                 <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
-                  {notifications.map((n) => (
+                  {notifications.length === 0 && (
+                    <div className="p-6 text-center text-slate-400 text-xs">
+                      No new notifications
+                    </div>
+                  )}
+                  {notifications.map((n: any) => (
                     <div
                       key={n.id}
+                      onClick={() => handleNotificationClick(n)}
                       className={`px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors ${!n.read ? 'bg-blue-50/40' : ''}`}
                     >
                       <div className="flex items-start gap-2.5">
@@ -298,8 +335,12 @@ export function WebAppLayout({ children, role, title, subtitle, breadcrumbs }: W
             onClick={() => navigate(profilePath)}
             className="flex items-center gap-2.5 pl-2 hover:bg-slate-50 rounded-lg pr-2 py-1.5 transition-colors group"
           >
-            <div className="w-7 h-7 bg-gradient-to-br from-[#2563EB] to-blue-700 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-bold text-white">{initials}</span>
+            <div className="w-7 h-7 bg-gradient-to-br from-[#2563EB] to-blue-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner ring-1 ring-slate-200">
+              {userPhoto ? (
+                <img src={userPhoto} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[10px] font-bold text-white">{initials}</span>
+              )}
             </div>
             <div className="hidden md:block text-left">
               <p className="text-xs font-semibold text-slate-800 leading-tight">{userName}</p>

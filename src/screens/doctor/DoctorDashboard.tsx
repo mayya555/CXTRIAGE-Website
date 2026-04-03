@@ -113,10 +113,19 @@ export default function DoctorDashboard() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        const storedId = localStorage.getItem('doctorId');
+        const doctorId = parseInt(storedId || '0');
+
+        if (!doctorId || isNaN(doctorId) || doctorId <= 0) {
+          toast.error('Session expired. Please log in again.');
+          navigate('/login');
+          return;
+        }
+
         const [summary, recent, priority] = await Promise.all([
           getDashboardSummary(),
-          getRecentCases(),
-          getPriorityCases()
+          getRecentCases(doctorId),
+          getPriorityCases(doctorId)
         ]);
         setStatsData(summary);
         setRecentCases(recent.slice(0, 5));
@@ -128,7 +137,7 @@ export default function DoctorDashboard() {
       }
     };
     loadData();
-  }, []);
+  }, [navigate]);
 
   const stats = [
     { label: 'New Cases', value: statsData.new.toString(), sub: 'Awaiting review', icon: FileText, color: 'text-[#2563EB]', bg: 'bg-blue-50', path: '/doctor/new-cases' },

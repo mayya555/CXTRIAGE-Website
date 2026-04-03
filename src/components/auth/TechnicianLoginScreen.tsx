@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Activity, Eye, EyeOff, ArrowLeft, User, Lock } from 'lucide-react';
+import { loginTechnician } from '../../lib/api';
 
 interface TechnicianLoginScreenProps {
   navigate: (screenId: number) => void;
@@ -10,10 +11,30 @@ export const TechnicianLoginScreen = ({ navigate, setRole }: TechnicianLoginScre
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    setRole('technician');
-    navigate(74); // Navigate directly to Terms & Conditions for Technician
+  const handleLogin = async () => {
+    if (!username || !password) {
+      setError('Please enter both username and password');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await loginTechnician({ email: username, password });
+      // Assuming response has token
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('userRole', 'technician');
+      setRole('technician');
+      navigate(74); // Navigate to Terms & Conditions for Technician
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,7 +73,7 @@ export const TechnicianLoginScreen = ({ navigate, setRole }: TechnicianLoginScre
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2563EB]">
                 <User className="w-5 h-5" strokeWidth={2} />
               </div>
-              <input 
+              <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -69,14 +90,14 @@ export const TechnicianLoginScreen = ({ navigate, setRole }: TechnicianLoginScre
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2563EB]">
                 <Lock className="w-5 h-5" strokeWidth={2} />
               </div>
-              <input 
+              <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full h-14 bg-transparent border-0 rounded-xl pl-12 pr-12 text-sm text-slate-900 placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-blue-200 transition-all"
               />
-              <button 
+              <button
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
               >
@@ -87,7 +108,7 @@ export const TechnicianLoginScreen = ({ navigate, setRole }: TechnicianLoginScre
 
           {/* Forgot Password Link */}
           <div className="flex justify-end pt-1">
-            <button 
+            <button
               onClick={() => navigate(75)}
               className="text-sm text-slate-400 hover:text-[#2563EB] transition-colors font-medium"
             >
@@ -96,19 +117,26 @@ export const TechnicianLoginScreen = ({ navigate, setRole }: TechnicianLoginScre
           </div>
 
           {/* Sign In Button */}
-          <button 
+          <button
             onClick={handleLogin}
-            className="w-full h-14 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-semibold text-base rounded-xl transition-all active:scale-[0.98] mt-6 shadow-lg shadow-blue-200"
+            disabled={loading}
+            className="w-full h-14 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:bg-blue-400 text-white font-semibold text-base rounded-xl transition-all active:scale-[0.98] mt-6 shadow-lg shadow-blue-200"
           >
-            Sign In
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
+
+          {error && (
+            <div className="text-red-500 text-sm text-center mt-2">
+              {error}
+            </div>
+          )}
 
           {/* Create Account Link */}
           <div className="text-center pt-4">
             <p className="text-sm text-slate-400 mb-1">
               Don't have an account?
             </p>
-            <button 
+            <button
               onClick={() => navigate(67)}
               className="font-bold text-slate-900 hover:text-[#2563EB] text-sm transition-colors"
             >

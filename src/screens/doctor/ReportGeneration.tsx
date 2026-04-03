@@ -1,36 +1,95 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { WebAppLayout } from '../../components/layout/WebAppLayout';
 import { FileText, CheckCircle, ChevronRight, Edit3, Download } from 'lucide-react';
-import { mockCases, mockFindings } from '../../lib/data';
+import { getCaseById, finalizeReport, downloadReportPDF } from '../../lib/api';
+import { toast } from 'sonner';
 
 export default function ReportGeneration() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const caseData = mockCases.find(c => c.id === id) || mockCases[0];
-  const [impression, setImpression] = useState(
-    '1. Right lower lobe pneumonia, moderate severity.\n2. Small left pleural effusion.\n3. Cardiomegaly — cardiac silhouette enlarged.\n4. No pneumothorax detected.\n5. No acute bony abnormality.'
-  );
+  const [caseData, setCaseData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [impression, setImpression] = useState('');
   const [recommendation, setRecommendation] = useState(
-    'Clinical correlation recommended. Consider repeat CXR in 4–6 weeks after treatment. Cardiology referral for cardiomegaly evaluation.'
+    'Clinical correlation recommended. Consider repeat CXR in 4–6 weeks after treatment.'
   );
   const [reportType, setReportType] = useState('standard');
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
 
-  const handleGenerate = () => {
+  useEffect(() => {
+    const fetchCase = async () => {
+      if (!id) return;
+      try {
+        const data = await getCaseById(id);
+        setCaseData(data);
+        
+        // Pre-populate impression from findings or existing notes
+        const findingsText = (data.findings || []).map((f: any, i: number) => `${i + 1}. ${f.name}`).join('\n');
+        setImpression(findingsText || data.ai_result || 'No significant findings detected.');
+        if (data.clinical_notes) {
+          setRecommendation(prev => `${prev}\n\nClinical Notes: ${data.clinical_notes}`);
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to fetch case details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCase();
+  }, [id]);
+
+  const handleGenerate = async () => {
+    if (!id || !impression) return;
     setGenerating(true);
-    setTimeout(() => {
-      setGenerating(false);
+    try {
+      const doctorName = localStorage.getItem('doctorName') || 'Dr. Michael Chen';
+      await finalizeReport(id, {
+        doctor_name: doctorName,
+        impression,
+        recommendation
+      });
       setGenerated(true);
-    }, 2000);
+      toast.success('Report generated and saved!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate report');
+    } finally {
+      setGenerating(false);
+    }
   };
+
+  const handleDownload = async () => {
+    if (!id) return;
+    const toastId = toast.loading('Preparing PDF...');
+    try {
+      await downloadReportPDF(id);
+      toast.success('Download started', { id: toastId });
+    } catch (error: any) {
+      toast.error(error.message || 'Download failed', { id: toastId });
+    }
+  };
+
+  if (loading) {
+    return (
+      <WebAppLayout role="doctor" title="Loading..." breadcrumbs={[]}>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB]"></div>
+        </div>
+      </WebAppLayout>
+    );
+  }
+
+  if (!caseData) return null;
+
+  const findingsList = caseData.findings || [];
 
   return (
     <WebAppLayout
       role="doctor"
       title="Report Generation"
-      subtitle={`Generating clinical report for ${caseData.patient}`}
+      subtitle={`Generating clinical report for ${caseData.patient_name}`}
       breadcrumbs={[
         { label: 'Dashboard', path: '/doctor/dashboard' },
         { label: 'Cases', path: '/doctor/new-cases' },
@@ -43,36 +102,37 @@ export default function ReportGeneration() {
           {/* Patient Header */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-bold text-[#2563EB]">{caseData.patient.split(' ').map(n=>n[0]).join('')}</span>
+              <span className="text-sm font-bold text-[#2563EB]">{caseData.patient_name?.split(' ').map((n:any)=>n[0]).join('')}</span>
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-slate-800">{caseData.patient}</h3>
-              <p className="text-sm text-slate-500">{caseData.age}y · {caseData.gender} · MRN: {caseData.mrn}</p>
+              <h3 className="font-bold text-slate-800">{caseData.patient_name}</h3>
+              <p className="text-sm text-slate-500">{caseData.patient_age}y · {caseData.patient_gender} · MRN: {caseData.case_code}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-400">Report Date</p>
-              <p className="text-sm font-semibold text-slate-700">March 6, 2026</p>
+              <p className="text-sm font-semibold text-slate-700">{new Date().toLocaleDateString()}</p>
             </div>
           </div>
 
           {/* Technique */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-slate-800 mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Technique</h3>
-            <p className="text-sm text-slate-700">Portable AP chest radiograph. Single view. Digital acquisition. DICOM format. 125 kV / 5 mAs.</p>
+            <p className="text-sm text-slate-700">Portable AP chest radiograph. Single view. Digital acquisition. DICOM format. 125 kV / 5 mAs. AI-assisted analysis via CXRT AI engine.</p>
           </div>
 
           {/* AI Findings Table */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h3 className="text-slate-800 mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">AI-Generated Findings</h3>
+            <h3 className="text-slate-800 mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Confirmed Findings</h3>
             <div className="space-y-2">
-              {mockFindings.map((f, i) => (
+              {findingsList.length === 0 && <p className="text-sm text-slate-400 italic">No specific findings confirmed.</p>}
+              {findingsList.map((f: any, i: number) => (
                 <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                   <span className="text-xs text-slate-400 w-4 font-mono">{i + 1}.</span>
                   <p className="text-sm text-slate-700 flex-1">{f.name}</p>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    f.severity === 'Critical' ? 'bg-red-100 text-red-700' :
-                    f.severity === 'High' ? 'bg-orange-100 text-orange-700' :
-                    f.severity === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                    f.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                    f.severity === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                    f.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
                   }`}>{f.severity}</span>
                   <span className="text-xs font-bold text-slate-500 w-10 text-right">{f.confidence}%</span>
                 </div>
@@ -112,12 +172,12 @@ export default function ReportGeneration() {
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-800">Dr. Michael Chen, MD</p>
-                <p className="text-xs text-slate-400">Lead Radiologist · License: RAD-789012</p>
-                <p className="text-xs text-slate-400 mt-0.5">Electronically signed — March 6, 2026 at 14:32</p>
+                <p className="text-sm font-bold text-slate-800">Assigned Radiologist</p>
+                <p className="text-xs text-slate-400">CXRT Medical Center</p>
+                <p className="text-xs text-slate-400 mt-0.5">Electronically signed — {new Date().toLocaleDateString()}</p>
               </div>
-              <div className="w-16 h-8 border-b-2 border-slate-700">
-                <span className="text-slate-700 text-lg italic font-serif">MChen</span>
+              <div className="w-24 h-8 border-b-2 border-slate-700 flex items-center justify-center">
+                <span className="text-slate-700 text-lg italic font-serif">Verified</span>
               </div>
             </div>
           </div>
@@ -180,7 +240,10 @@ export default function ReportGeneration() {
               >
                 Preview Report <ChevronRight className="w-4 h-4" />
               </button>
-              <button className="w-full border border-slate-200 text-slate-600 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+              <button 
+                onClick={handleDownload}
+                className="w-full border border-slate-200 text-slate-600 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+              >
                 <Download className="w-4 h-4" /> Download PDF
               </button>
             </div>
@@ -212,3 +275,4 @@ export default function ReportGeneration() {
     </WebAppLayout>
   );
 }
+

@@ -1,0 +1,2 @@
+Error: (pymysql.err.OperationalError) (1049, "Unknown database 'hospitaldb'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)

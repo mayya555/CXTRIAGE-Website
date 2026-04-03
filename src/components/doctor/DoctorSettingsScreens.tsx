@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  ChevronLeft, User, Lock, Bell, Sun, Globe, HelpCircle, FileText, 
-  LogOut, ChevronRight, Settings, Activity, Database, Clock, 
-  Camera, Mail, Phone, Building2, Shield, Key, Smartphone, 
+import {
+  ChevronLeft, User, Lock, Bell, Sun, Globe, HelpCircle, FileText,
+  LogOut, ChevronRight, Settings, Activity, Database, Clock,
+  Camera, Mail, Phone, Building2, Shield, Key, Smartphone,
   Volume2, MessageSquare, Calendar, Moon, Check, AlertCircle,
   Download, ExternalLink, BookOpen, LifeBuoy, Send
 } from 'lucide-react';
@@ -22,12 +22,14 @@ interface DoctorSettingsScreenProps {
 // Main Settings Screen
 export const DoctorSettingsScreen = ({ navigate, setRole }: DoctorSettingsScreenProps) => {
   return (
-    <WebLayout 
-      title="Settings" 
+    <WebLayout
+      title="Settings"
       role="doctor"
       currentScreen={62}
       onNavigate={navigate}
       onLogout={() => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
         setRole(null);
         navigate(2);
       }}
@@ -44,7 +46,7 @@ export const DoctorSettingsScreen = ({ navigate, setRole }: DoctorSettingsScreen
               <p className="text-sm text-slate-500">Radiologist • DOC-3847</p>
               <p className="text-sm text-slate-500">Cardiothoracic Imaging Specialist</p>
             </div>
-            <Button 
+            <Button
               onClick={() => navigate(63)}
               variant="outline"
             >
@@ -57,7 +59,7 @@ export const DoctorSettingsScreen = ({ navigate, setRole }: DoctorSettingsScreen
         <div>
           <h3 className="text-sm font-semibold text-slate-700 mb-3 px-1">Account</h3>
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
-            <button 
+            <button
               onClick={() => navigate(63)}
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
             >
@@ -73,7 +75,7 @@ export const DoctorSettingsScreen = ({ navigate, setRole }: DoctorSettingsScreen
               <ChevronRight className="w-5 h-5 text-slate-400" />
             </button>
 
-            <button 
+            <button
               onClick={() => navigate(64)}
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
             >
@@ -89,7 +91,7 @@ export const DoctorSettingsScreen = ({ navigate, setRole }: DoctorSettingsScreen
               <ChevronRight className="w-5 h-5 text-slate-400" />
             </button>
 
-            <button 
+            <button
               onClick={() => navigate(65)}
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
             >
@@ -156,7 +158,7 @@ export const DoctorSettingsScreen = ({ navigate, setRole }: DoctorSettingsScreen
         <div>
           <h3 className="text-sm font-semibold text-slate-700 mb-3 px-1">Support & Legal</h3>
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
-            <button 
+            <button
               onClick={() => navigate(66)}
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
             >
@@ -201,7 +203,7 @@ export const DoctorSettingsScreen = ({ navigate, setRole }: DoctorSettingsScreen
         </div>
 
         {/* Logout */}
-        <button 
+        <button
           onClick={() => {
             setRole(null);
             navigate(2);
@@ -251,8 +253,8 @@ export const DoctorProfileScreen = ({ navigate }: { navigate: (screenId: number)
   };
 
   return (
-    <WebLayout 
-      title="Profile Information" 
+    <WebLayout
+      title="Profile Information"
       showBack
       onBack={() => navigate(62)}
       role="doctor"
@@ -296,38 +298,38 @@ export const DoctorProfileScreen = ({ navigate }: { navigate: (screenId: number)
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="firstName">First Name</Label>
-              <Input 
+              <Input
                 id="firstName"
                 value={formData.firstName}
-                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
             <div>
               <Label htmlFor="lastName">Last Name</Label>
-              <Input 
+              <Input
                 id="lastName"
                 value={formData.lastName}
-                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
             <div>
               <Label htmlFor="email">Email Address</Label>
-              <Input 
+              <Input
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
             <div>
               <Label htmlFor="phone">Phone Number</Label>
-              <Input 
+              <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
@@ -340,46 +342,46 @@ export const DoctorProfileScreen = ({ navigate }: { navigate: (screenId: number)
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="specialty">Specialty</Label>
-              <Input 
+              <Input
                 id="specialty"
                 value={formData.specialty}
-                onChange={(e) => setFormData({...formData, specialty: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
             <div>
               <Label htmlFor="subspecialty">Subspecialty</Label>
-              <Input 
+              <Input
                 id="subspecialty"
                 value={formData.subspecialty}
-                onChange={(e) => setFormData({...formData, subspecialty: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, subspecialty: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
             <div>
               <Label htmlFor="licenseNumber">Medical License Number</Label>
-              <Input 
+              <Input
                 id="licenseNumber"
                 value={formData.licenseNumber}
-                onChange={(e) => setFormData({...formData, licenseNumber: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
             <div>
               <Label htmlFor="hospital">Hospital/Institution</Label>
-              <Input 
+              <Input
                 id="hospital"
                 value={formData.hospital}
-                onChange={(e) => setFormData({...formData, hospital: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, hospital: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
             <div className="md:col-span-2">
               <Label htmlFor="department">Department</Label>
-              <Input 
+              <Input
                 id="department"
                 value={formData.department}
-                onChange={(e) => setFormData({...formData, department: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                 disabled={!isEditing}
               />
             </div>
@@ -419,8 +421,8 @@ export const DoctorProfileScreen = ({ navigate }: { navigate: (screenId: number)
 // Security & Privacy Screen (Screen 64)
 export const DoctorSecurityScreen = ({ navigate }: { navigate: (screenId: number) => void }) => {
   return (
-    <WebLayout 
-      title="Security & Privacy" 
+    <WebLayout
+      title="Security & Privacy"
       showBack
       onBack={() => navigate(62)}
       role="doctor"
@@ -579,8 +581,8 @@ export const DoctorSecurityScreen = ({ navigate }: { navigate: (screenId: number
 // Notifications Screen (Screen 65)
 export const DoctorNotificationsScreen = ({ navigate }: { navigate: (screenId: number) => void }) => {
   return (
-    <WebLayout 
-      title="Notification Settings" 
+    <WebLayout
+      title="Notification Settings"
       showBack
       onBack={() => navigate(62)}
       role="doctor"
@@ -723,8 +725,8 @@ export const DoctorNotificationsScreen = ({ navigate }: { navigate: (screenId: n
 // Help & Support Screen (Screen 66)
 export const DoctorHelpScreen = ({ navigate }: { navigate: (screenId: number) => void }) => {
   return (
-    <WebLayout 
-      title="Help & Support" 
+    <WebLayout
+      title="Help & Support"
       showBack
       onBack={() => navigate(62)}
       role="doctor"
@@ -858,7 +860,7 @@ export const DoctorHelpScreen = ({ navigate }: { navigate: (screenId: number) =>
           <h3 className="font-semibold text-slate-900 mb-4">Send Feedback</h3>
           <p className="text-sm text-slate-600 mb-4">Help us improve CXRT AI by sharing your suggestions</p>
           <div className="space-y-3">
-            <textarea 
+            <textarea
               className="w-full p-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={4}
               placeholder="Tell us what you think..."

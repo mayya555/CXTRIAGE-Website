@@ -8,24 +8,36 @@ import { toast } from 'sonner';
 export default function ScannerPreparation() {
   const navigate = useNavigate();
   const location = useLocation();
-  const patient = location.state || { patientId: 1, patientName: 'John Smith', mrn: 'MRN-001240' };
+  const patient = location.state || { patientId: 1, patientName: 'John Smith', mrn: 'MRN-001240', urgency: 'Routine', scanType: 'PA (Postero-Anterior)' };
   
   const [checklist, setChecklist] = useState<boolean[]>([false, false, false, false, false, false]);
   const [submitting, setSubmitting] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [scanId, setScanId] = useState<number | null>(null);
+  const technicianId = parseInt(localStorage.getItem('technicianId') || '1');
 
   useEffect(() => {
     // Automatically start a scan record for this patient session
     const initScan = async () => {
+      if (!patient.patientId) {
+        toast.error('Patient record not found. Please register the patient again.');
+        navigate('/technician/patient-registration');
+        return;
+      }
+      
+      setIsInitializing(true);
       try {
-        const response = await startScan(patient.patientId);
+        const response = await startScan(patient.patientId, technicianId);
         setScanId(response.scan_id || 1); // Fallback for demo
       } catch (error) {
         console.error('Failed to initialize scan record', error);
+        toast.error('Failed to prepare scanner. Please check connection and try again.');
+      } finally {
+        setIsInitializing(false);
       }
     };
     initScan();
-  }, [patient.patientId]);
+  }, [patient.patientId, technicianId, navigate]);
 
   const items = [
     'Patient positioned correctly (upright, arms raised)',
@@ -145,29 +157,37 @@ export default function ScannerPreparation() {
 
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-4 h-4 text-red-500" />
+                {(!patient.patientId || isInitializing) ? (
+                  <AlertCircle className="w-4 h-4 text-amber-500 animate-pulse" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                )}
                 <h4 className="text-sm font-semibold text-slate-700">Current Patient</h4>
               </div>
               <div className="space-y-1 text-xs">
                 <p className="font-medium text-slate-700">{patient.patientName}</p>
                 <p className="text-slate-500">{patient.mrn}</p>
-                <p className="text-slate-500">PA View · Routine</p>
+                <p className={`font-semibold ${patient.urgency === 'STAT (Emergency)' ? 'text-red-600' : patient.urgency === 'Urgent' ? 'text-amber-600' : 'text-slate-500'}`}>
+                  {patient.scanType || 'PA View'} · {patient.urgency || 'Routine'}
+                </p>
               </div>
             </div>
 
             <button
               onClick={handleProceed}
-              disabled={!allChecked || submitting}
+              disabled={!allChecked || submitting || isInitializing || !scanId}
               className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-                allChecked && !submitting
+                allChecked && !submitting && !isInitializing && scanId
                   ? 'bg-[#2563EB] text-white hover:bg-blue-700 shadow-md shadow-blue-500/20'
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }`}
             >
-              {submitting ? (
+              {submitting || isInitializing ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-400"></div>
-              ) : allChecked ? (
+              ) : allChecked && scanId ? (
                 <>Start Scan <ChevronRight className="w-4 h-4" /></>
+              ) : !scanId ? (
+                'Initializing...'
               ) : (
                 `Complete ${items.length - checkedCount} More`
               )}

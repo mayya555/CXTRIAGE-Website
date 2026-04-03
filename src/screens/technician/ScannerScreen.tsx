@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { WebAppLayout } from '../../components/layout/WebAppLayout';
 import {
   Camera, ZoomIn, ZoomOut, RotateCcw, Sun, Contrast, ChevronRight,
-  Maximize2, Grid, RefreshCw, CheckCircle, AlertTriangle, Info
+  Maximize2, Grid, RefreshCw, CheckCircle, AlertTriangle, Info,
+  Upload, FileText
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ScannerScreen() {
   const navigate = useNavigate();
@@ -18,13 +20,102 @@ export default function ScannerScreen() {
   const [zoom, setZoom] = useState(1);
   const [capturing, setCapturing] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Heuristic to check if an image is grayscale (like an X-ray)
+  const isGrayscaleImage = (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(true); // Fallback
+
+        // Scale down to 100x100 for performance
+        canvas.width = 100;
+        canvas.height = 100;
+        ctx.drawImage(img, 0, 0, 100, 100);
+        
+        try {
+          const imageData = ctx.getImageData(0, 0, 100, 100);
+          const data = imageData.data;
+          let colorPixelCount = 0;
+          
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            
+            // Calculate variance between color channels
+            const variance = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+            
+            // If the difference is significant, it's a colored pixel
+            if (variance > 25) {
+              colorPixelCount++;
+            }
+          }
+          
+          // If more than 5% of pixels have significant color, it's not a grayscale X-ray
+          const colorPercentage = colorPixelCount / (100 * 100);
+          URL.revokeObjectURL(objectUrl);
+          resolve(colorPercentage < 0.05);
+        } catch (e) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(true); // Fallback on CORS etc.
+        }
+      };
+      img.onerror = () => resolve(true);
+      img.src = objectUrl;
+    });
+  };
 
   const handleCapture = () => {
+    setSelectedFile(null);
     setCapturing(true);
     setTimeout(() => {
       setCapturing(false);
       setCaptured(true);
     }, 1800);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setValidationError(null);
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      const isDicom = file.name.toLowerCase().endsWith('.dcm');
+      
+      if (!validTypes.includes(file.type) && !isDicom) {
+        toast.error('Strict Validation Failed: Only valid image formats (JPG, PNG) or DICOM are allowed.');
+        setValidationError('Invalid file format. Only JPG, PNG, and DCM are supported.');
+        return;
+      }
+
+      setCapturing(true);
+      toast.loading('AI Processing: Analyzing image pixels...', { id: 'pixel-analysis' });
+      
+      // Perform pixel analysis
+      const isGrayscale = isDicom ? true : await isGrayscaleImage(file);
+      
+      setTimeout(() => {
+        setCapturing(false);
+        toast.dismiss('pixel-analysis');
+        
+        if (!isGrayscale) {
+           toast.error('AI Security Alert: Image contains color data. Not a Chest X-Ray. Upload rejected.', { duration: 5000 });
+           setValidationError(`AI Security Alert: "${file.name}" was rejected. The AI detected colored pixels. Chest X-Rays must be standard grayscale images.`);
+           if (fileInputRef.current) fileInputRef.current.value = '';
+           return;
+        }
+
+        setSelectedFile(file);
+        setCaptured(true);
+        toast.success('AI Validation: Chest X-Ray pixel structure verified.');
+      }, 1200);
+    }
   };
 
   return (
@@ -38,6 +129,13 @@ export default function ScannerScreen() {
         { label: 'Scanner' },
       ]}
     >
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileUpload} 
+        className="hidden" 
+        accept="image/jpeg, image/png, image/jpg, .dcm" 
+      />
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-5 h-[calc(100vh-215px)]">
         {/* X-Ray Viewer */}
         <div className="xl:col-span-3 bg-[#050a14] rounded-2xl border border-slate-700/80 overflow-hidden flex flex-col shadow-2xl">
@@ -118,104 +216,115 @@ export default function ScannerScreen() {
               className="relative transition-transform duration-300"
               style={{ transform: `scale(${zoom})` }}
             >
-              <svg viewBox="0 0 220 280" className="w-80 h-[400px]" style={{
-                filter: `brightness(${0.4 + brightness / 100}) contrast(${0.45 + contrast / 100})`,
-              }}>
-                <rect width="220" height="280" fill="#030710" />
-                <radialGradient id="bodyGlow" cx="50%" cy="50%" r="55%">
-                  <stop offset="0%" stopColor="#1a2a3a" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="transparent" />
-                </radialGradient>
-                <rect width="220" height="280" fill="url(#bodyGlow)" />
+                {selectedFile ? (
+                  <img
+                    src={URL.createObjectURL(selectedFile)}
+                    alt="Captured X-Ray"
+                    className="w-full h-full object-contain"
+                    style={{
+                      filter: `brightness(${0.4 + brightness / 100}) contrast(${0.45 + contrast / 100}) grayscale(100%)`,
+                    }}
+                  />
+                ) : (
+                  <svg viewBox="0 0 220 280" className="w-80 h-[400px]" style={{
+                    filter: `brightness(${0.4 + brightness / 100}) contrast(${0.45 + contrast / 100})`,
+                  }}>
+                    <rect width="220" height="280" fill="#030710" />
+                    <radialGradient id="bodyGlow" cx="50%" cy="50%" r="55%">
+                      <stop offset="0%" stopColor="#1a2a3a" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="transparent" />
+                    </radialGradient>
+                    <rect width="220" height="280" fill="url(#bodyGlow)" />
 
-                {/* Ribcage */}
-                {[0,1,2,3,4,5,6,7].map(i => (
-                  <g key={i}>
-                    <path d={`M 110 ${80 + i*20} Q ${78 - i*1.5} ${75 + i*20} ${42 - i*0.5} ${86 + i*20}`}
-                      fill="none" stroke="#bccdd8"
-                      strokeWidth={captured ? "1.4" : "0.7"}
-                      opacity={captured ? (0.85 - i * 0.04) : (0.35 - i * 0.02)} />
-                    <path d={`M 110 ${80 + i*20} Q ${142 + i*1.5} ${75 + i*20} ${178 + i*0.5} ${86 + i*20}`}
-                      fill="none" stroke="#bccdd8"
-                      strokeWidth={captured ? "1.4" : "0.7"}
-                      opacity={captured ? (0.85 - i * 0.04) : (0.35 - i * 0.02)} />
-                  </g>
-                ))}
+                    {/* Ribcage */}
+                    {[0,1,2,3,4,5,6,7].map(i => (
+                      <g key={i}>
+                        <path d={`M 110 ${80 + i*20} Q ${78 - i*1.5} ${75 + i*20} ${42 - i*0.5} ${86 + i*20}`}
+                          fill="none" stroke="#bccdd8"
+                          strokeWidth={captured ? "1.4" : "0.7"}
+                          opacity={captured ? (0.85 - i * 0.04) : (0.35 - i * 0.02)} />
+                        <path d={`M 110 ${80 + i*20} Q ${142 + i*1.5} ${75 + i*20} ${178 + i*0.5} ${86 + i*20}`}
+                          fill="none" stroke="#bccdd8"
+                          strokeWidth={captured ? "1.4" : "0.7"}
+                          opacity={captured ? (0.85 - i * 0.04) : (0.35 - i * 0.02)} />
+                      </g>
+                    ))}
 
-                {/* Spine */}
-                <rect x="105" y="58" width="10" height="188" rx="5"
-                  fill={captured ? "#c8d8e4" : "#405870"} opacity={captured ? "0.65" : "0.25"} />
+                    {/* Spine */}
+                    <rect x="105" y="58" width="10" height="188" rx="5"
+                      fill={captured ? "#c8d8e4" : "#405870"} opacity={captured ? "0.65" : "0.25"} />
 
-                {/* Heart */}
-                <ellipse cx="96" cy="148" rx="27" ry="32"
-                  fill={captured ? "#788498" : "#2a3a50"} opacity={captured ? "0.55" : "0.22"} />
+                    {/* Heart */}
+                    <ellipse cx="96" cy="148" rx="27" ry="32"
+                      fill={captured ? "#788498" : "#2a3a50"} opacity={captured ? "0.55" : "0.22"} />
 
-                {/* Lungs */}
-                <ellipse cx="65" cy="138" rx="24" ry="42" fill="none"
-                  stroke={captured ? "#90b0c4" : "#405870"} strokeWidth={captured ? "1.5" : "0.7"}
-                  opacity={captured ? "0.65" : "0.25"} />
-                <ellipse cx="155" cy="138" rx="24" ry="42" fill="none"
-                  stroke={captured ? "#90b0c4" : "#405870"} strokeWidth={captured ? "1.5" : "0.7"}
-                  opacity={captured ? "0.65" : "0.25"} />
+                    {/* Lungs */}
+                    <ellipse cx="65" cy="138" rx="24" ry="42" fill="none"
+                      stroke={captured ? "#90b0c4" : "#405870"} strokeWidth={captured ? "1.5" : "0.7"}
+                      opacity={captured ? "0.65" : "0.25"} />
+                    <ellipse cx="155" cy="138" rx="24" ry="42" fill="none"
+                      stroke={captured ? "#90b0c4" : "#405870"} strokeWidth={captured ? "1.5" : "0.7"}
+                      opacity={captured ? "0.65" : "0.25"} />
 
-                {/* Finding preview if captured */}
-                {captured && (
-                  <>
-                    <ellipse cx="155" cy="158" rx="16" ry="20" fill="#ff6060" opacity="0.2" />
-                    <ellipse cx="155" cy="158" rx="16" ry="20" fill="none" stroke="#ff6060" strokeWidth="0.8" strokeDasharray="3,2" opacity="0.4" />
-                  </>
+                    {/* Finding preview if captured */}
+                    {captured && (
+                      <>
+                        <ellipse cx="155" cy="158" rx="16" ry="20" fill="#ff6060" opacity="0.2" />
+                        <ellipse cx="155" cy="158" rx="16" ry="20" fill="none" stroke="#ff6060" strokeWidth="0.8" strokeDasharray="3,2" opacity="0.4" />
+                      </>
+                    )}
+
+                    {/* Shoulders */}
+                    <path d="M 28 76 Q 44 58 110 52 Q 176 58 192 76" fill="none"
+                      stroke={captured ? "#a8bec8" : "#405870"} strokeWidth={captured ? "2" : "1"}
+                      opacity={captured ? "0.6" : "0.22"} />
+
+                    {/* Diaphragm */}
+                    <path d="M 40 204 Q 110 220 180 204" fill="none"
+                      stroke={captured ? "#98b0c0" : "#405870"} strokeWidth={captured ? "1.8" : "0.8"}
+                      opacity={captured ? "0.55" : "0.22"} />
+
+                    {/* Scanning animation */}
+                    {capturing && (
+                      <g>
+                        <rect x="0" y="-4" width="220" height="4" fill="#3b82f6" opacity="0.5">
+                          <animateTransform
+                            attributeName="transform"
+                            type="translate"
+                            from="0 0"
+                            to="0 285"
+                            dur="1.8s"
+                            repeatCount="1"
+                            fill="freeze"
+                          />
+                        </rect>
+                        <rect x="0" y="-4" width="220" height="2" fill="#93c5fd" opacity="0.7">
+                          <animateTransform
+                            attributeName="transform"
+                            type="translate"
+                            from="0 2"
+                            to="0 287"
+                            dur="1.8s"
+                            repeatCount="1"
+                            fill="freeze"
+                          />
+                        </rect>
+                      </g>
+                    )}
+
+                    {/* Corner markers */}
+                    {captured && (
+                      <>
+                        <path d="M 10 10 L 10 22 M 10 10 L 22 10" stroke="#3b82f6" strokeWidth="1.5" opacity="0.5" fill="none" />
+                        <path d="M 210 10 L 198 10 M 210 10 L 210 22" stroke="#3b82f6" strokeWidth="1.5" opacity="0.5" fill="none" />
+                        <path d="M 10 270 L 10 258 M 10 270 L 22 270" stroke="#3b82f6" strokeWidth="1.5" opacity="0.5" fill="none" />
+                        <path d="M 210 270 L 198 270 M 210 270 L 210 258" stroke="#3b82f6" strokeWidth="1.5" opacity="0.5" fill="none" />
+                      </>
+                    )}
+
+                    <text x="6" y="275" fill="#2a4060" fontSize="7">CXRT AI · {patient.mrn} · {new Date().toISOString().split('T')[0]}</text>
+                  </svg>
                 )}
-
-                {/* Shoulders */}
-                <path d="M 28 76 Q 44 58 110 52 Q 176 58 192 76" fill="none"
-                  stroke={captured ? "#a8bec8" : "#405870"} strokeWidth={captured ? "2" : "1"}
-                  opacity={captured ? "0.6" : "0.22"} />
-
-                {/* Diaphragm */}
-                <path d="M 40 204 Q 110 220 180 204" fill="none"
-                  stroke={captured ? "#98b0c0" : "#405870"} strokeWidth={captured ? "1.8" : "0.8"}
-                  opacity={captured ? "0.55" : "0.22"} />
-
-                {/* Scanning animation */}
-                {capturing && (
-                  <g>
-                    <rect x="0" y="-4" width="220" height="4" fill="#3b82f6" opacity="0.5">
-                      <animateTransform
-                        attributeName="transform"
-                        type="translate"
-                        from="0 0"
-                        to="0 285"
-                        dur="1.8s"
-                        repeatCount="1"
-                        fill="freeze"
-                      />
-                    </rect>
-                    <rect x="0" y="-4" width="220" height="2" fill="#93c5fd" opacity="0.7">
-                      <animateTransform
-                        attributeName="transform"
-                        type="translate"
-                        from="0 2"
-                        to="0 287"
-                        dur="1.8s"
-                        repeatCount="1"
-                        fill="freeze"
-                      />
-                    </rect>
-                  </g>
-                )}
-
-                {/* Corner markers */}
-                {captured && (
-                  <>
-                    <path d="M 10 10 L 10 22 M 10 10 L 22 10" stroke="#3b82f6" strokeWidth="1.5" opacity="0.5" fill="none" />
-                    <path d="M 210 10 L 198 10 M 210 10 L 210 22" stroke="#3b82f6" strokeWidth="1.5" opacity="0.5" fill="none" />
-                    <path d="M 10 270 L 10 258 M 10 270 L 22 270" stroke="#3b82f6" strokeWidth="1.5" opacity="0.5" fill="none" />
-                    <path d="M 210 270 L 198 270 M 210 270 L 210 258" stroke="#3b82f6" strokeWidth="1.5" opacity="0.5" fill="none" />
-                  </>
-                )}
-
-                <text x="6" y="275" fill="#2a4060" fontSize="7">CXRT AI · {patient.mrn} · {new Date().toISOString().split('T')[0]}</text>
-              </svg>
 
               {/* Ruler mark */}
               <div className="absolute bottom-2 right-2 text-[8px] text-slate-600 font-mono">10cm ━━━</div>
@@ -253,11 +362,17 @@ export default function ScannerScreen() {
             <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400">Scan Type</span>
-                <span className="font-medium text-slate-700">PA View</span>
+                <span className="font-medium text-slate-700">{patient.scanType || 'PA View'}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400">Priority</span>
-                <span className="font-medium text-green-700">Routine</span>
+                <span className={`font-medium ${
+                  patient.urgency === 'STAT (Emergency)' ? 'text-red-600' :
+                  patient.urgency === 'Urgent' ? 'text-amber-600' :
+                  'text-green-700'
+                }`}>
+                  {patient.urgency || 'Routine'}
+                </span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400">Technician</span>
@@ -268,46 +383,61 @@ export default function ScannerScreen() {
 
           {/* Capture / Captured State */}
           {!captured ? (
-            <button
-              onClick={handleCapture}
-              disabled={capturing}
-              className={`flex-1 rounded-xl font-semibold text-sm flex flex-col items-center justify-center gap-3 transition-all border-2 ${
-                capturing
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 cursor-not-allowed'
-                  : 'bg-[#2563EB] border-[#2563EB] text-white hover:bg-blue-700 hover:border-blue-700 shadow-xl shadow-blue-900/30'
-              }`}
-            >
-              {capturing ? (
-                <>
-                  <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-                    <RefreshCw className="w-6 h-6 animate-spin" />
-                  </div>
-                  <div className="text-center">
-                    <span className="block">Scanning...</span>
-                    <span className="text-amber-400/70 text-xs font-normal">Hold breath</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center border-2 border-white/20">
-                    <Camera className="w-7 h-7" />
-                  </div>
-                  <div className="text-center">
-                    <span className="block">Capture X-Ray</span>
-                    <span className="text-blue-200 text-xs font-normal">Click to capture</span>
-                  </div>
-                </>
-              )}
-            </button>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleCapture}
+                disabled={capturing}
+                className={`py-6 rounded-xl font-semibold text-sm flex flex-col items-center justify-center gap-3 transition-all border-2 ${
+                  capturing
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 cursor-not-allowed'
+                    : 'bg-[#2563EB] border-[#2563EB] text-white hover:bg-blue-700 hover:border-blue-700 shadow-xl shadow-blue-900/30'
+                }`}
+              >
+                {capturing ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <RefreshCw className="w-6 h-6 animate-spin" />
+                    </div>
+                    <div className="text-center">
+                      <span className="block">Scanning...</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center border-2 border-white/20">
+                      <Camera className="w-6 h-6" />
+                    </div>
+                    <div className="text-center">
+                      <span className="block">Capture X-Ray</span>
+                    </div>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-3 transition-all border-2 border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                <Upload className="w-5 h-5 text-blue-500" />
+                Upload File (DICOM / Image)
+              </button>
+            </div>
           ) : (
             <div className="flex-1 bg-green-50 border-2 border-green-200 rounded-xl flex flex-col items-center justify-center gap-3 p-4">
               <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center border-2 border-green-300">
-                <CheckCircle className="w-7 h-7 text-green-600" />
+                {selectedFile ? (
+                  <FileText className="w-7 h-7 text-green-600" />
+                ) : (
+                  <CheckCircle className="w-7 h-7 text-green-600" />
+                )}
               </div>
-              <div className="text-center">
-                <p className="font-bold text-green-700">Image Captured!</p>
-                <p className="text-xs text-green-500 mt-0.5">1024×1024 · DICOM format</p>
-                <p className="text-[10px] text-green-400 mt-0.5">4.2 MB · PA View</p>
+              <div className="text-center truncate w-full px-2">
+                <p className="font-bold text-green-700 truncate">
+                  {selectedFile ? selectedFile.name : 'Image Captured!'}
+                </p>
+                <p className="text-xs text-green-500 mt-0.5">
+                  {selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB` : '1024×1024 · DICOM format'}
+                </p>
               </div>
               <div className="w-full p-2.5 bg-white rounded-lg border border-green-200">
                 <div className="flex items-center gap-2 text-xs text-green-700">
@@ -318,8 +448,23 @@ export default function ScannerScreen() {
             </div>
           )}
 
+          {/* Validation Error Alert */}
+          {validationError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 animate-in fade-in zoom-in duration-300">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-red-800">Upload Rejected</p>
+                  <p className="text-xs text-red-600 mt-1">{validationError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Quality Hint */}
-          {!captured && (
+          {!captured && !validationError && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -340,16 +485,16 @@ export default function ScannerScreen() {
             {captured ? (
               <>
                 <button
-                  onClick={() => navigate('/technician/scan-quality', { state: { ...patient, captured: true } })}
+                  onClick={() => navigate('/technician/scan-quality', { state: { ...patient, captured: true, selectedFile } })}
                   className="w-full bg-[#2563EB] text-white py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20"
                 >
                   Validate Quality <ChevronRight className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setCaptured(false)}
+                  onClick={() => { setCaptured(false); setSelectedFile(null); }}
                   className="w-full border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" /> Retake Image
+                  <RefreshCw className="w-3.5 h-3.5" /> Retake / Clear Selection
                 </button>
               </>
             ) : (

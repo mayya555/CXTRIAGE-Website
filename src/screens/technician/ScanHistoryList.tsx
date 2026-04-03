@@ -23,7 +23,8 @@ export default function ScanHistoryList() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const data = await getScanHistory();
+        const technicianId = parseInt(localStorage.getItem('technicianId') || '1');
+        const data = await getScanHistory(technicianId);
         setScans(data);
       } catch (error) {
         console.error('Failed to fetch scan history', error);
@@ -157,8 +158,8 @@ export default function ScanHistoryList() {
                           {cfg.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">N/A</td>
-                      <td className="px-6 py-4 text-sm text-slate-500">N/A</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{scan.ai_finding || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-slate-500">{scan.technician_name || 'N/A'}</td>
                       <td className="px-6 py-4 text-right">
                         <button className="inline-flex items-center gap-1 text-[#2563EB] text-xs font-medium hover:underline">
                           View <ChevronRight className="w-3.5 h-3.5" />

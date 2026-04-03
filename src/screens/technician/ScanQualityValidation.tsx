@@ -15,7 +15,8 @@ const qualityChecks = [
 export default function ScanQualityValidation() {
   const navigate = useNavigate();
   const location = useLocation();
-  const patient = location.state || { patientId: 1, patientName: 'John Smith', mrn: 'MRN-001240', scanId: 1 };
+  const patient = location.state || { patientId: 1, patientName: 'John Smith', mrn: 'MRN-001240', scanId: 1, selectedFile: null };
+  const selectedFile = location.state?.selectedFile;
   
   const [decision, setDecision] = useState<'accept' | 'retake' | null>(null);
 
@@ -105,21 +106,29 @@ export default function ScanQualityValidation() {
           {/* X-ray Thumbnail */}
           <div className="bg-[#050a14] rounded-xl border border-slate-700 p-4">
             <p className="text-slate-400 text-xs font-semibold mb-2 uppercase tracking-wide">Captured Image</p>
-            <div className="aspect-square bg-[#0a1628] rounded-lg flex items-center justify-center">
-              <svg viewBox="0 0 200 200" className="w-full h-full opacity-80">
-                <rect width="200" height="200" fill="#050a14" />
-                {[0,1,2,3,4,5].map(i => (
-                  <g key={i}>
-                    <path d={`M 100 ${55 + i*18} Q ${72} ${52 + i*18} ${42} ${62 + i*18}`} fill="none" stroke="#c8d8e8" strokeWidth="1.2" opacity="0.8" />
-                    <path d={`M 100 ${55 + i*18} Q ${128} ${52 + i*18} ${158} ${62 + i*18}`} fill="none" stroke="#c8d8e8" strokeWidth="1.2" opacity="0.8" />
-                  </g>
-                ))}
-                <rect x="96" y="45" width="8" height="140" rx="4" fill="#d0dce8" opacity="0.6" />
-                <ellipse cx="86" cy="105" rx="20" ry="25" fill="#8090a8" opacity="0.5" />
-                <ellipse cx="55" cy="100" rx="18" ry="32" fill="none" stroke="#a0b8c8" strokeWidth="1.2" opacity="0.6" />
-                <ellipse cx="145" cy="100" rx="18" ry="32" fill="none" stroke="#a0b8c8" strokeWidth="1.2" opacity="0.6" />
-                <ellipse cx="145" cy="115" rx="11" ry="14" fill="#ff6060" opacity="0.2" />
-              </svg>
+            <div className="aspect-square bg-[#0a1628] rounded-lg flex items-center justify-center overflow-hidden border border-slate-700/50">
+              {selectedFile ? (
+                <img
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="Quality Review"
+                  className="w-full h-full object-cover opacity-80"
+                />
+              ) : (
+                <svg viewBox="0 0 200 200" className="w-full h-full opacity-80">
+                  <rect width="200" height="200" fill="#050a14" />
+                  {[0,1,2,3,4,5].map(i => (
+                    <g key={i}>
+                      <path d={`M 100 ${55 + i*18} Q ${72} ${52 + i*18} ${42} ${62 + i*18}`} fill="none" stroke="#c8d8e8" strokeWidth="1.2" opacity="0.8" />
+                      <path d={`M 100 ${55 + i*18} Q ${128} ${52 + i*18} ${158} ${62 + i*18}`} fill="none" stroke="#c8d8e8" strokeWidth="1.2" opacity="0.8" />
+                    </g>
+                  ))}
+                  <rect x="96" y="45" width="8" height="140" rx="4" fill="#d0dce8" opacity="0.6" />
+                  <ellipse cx="86" cy="105" rx="20" ry="25" fill="#8090a8" opacity="0.5" />
+                  <ellipse cx="55" cy="100" rx="18" ry="32" fill="none" stroke="#a0b8c8" strokeWidth="1.2" opacity="0.6" />
+                  <ellipse cx="145" cy="100" rx="18" ry="32" fill="none" stroke="#a0b8c8" strokeWidth="1.2" opacity="0.6" />
+                  <ellipse cx="145" cy="115" rx="11" ry="14" fill="#ff6060" opacity="0.2" />
+                </svg>
+              )}
             </div>
             <p className="text-slate-500 text-[10px] text-center mt-2">{patient.patientName} · PA View · {new Date().toISOString().split('T')[0]}</p>
           </div>
@@ -155,7 +164,7 @@ export default function ScanQualityValidation() {
             </div>
             <button
               onClick={() => {
-                if (decision === 'accept') navigate('/technician/upload-to-ai', { state: location.state });
+                if (decision === 'accept') navigate('/technician/upload-to-ai', { state: { ...location.state, selectedFile } });
                 if (decision === 'retake') navigate('/technician/scanner', { state: location.state });
               }}
               disabled={!decision}

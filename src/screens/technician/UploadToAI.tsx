@@ -16,7 +16,8 @@ const uploadSteps = [
 export default function UploadToAI() {
   const navigate = useNavigate();
   const location = useLocation();
-  const patient = location.state || { patientId: 1, patientName: 'John Smith', mrn: 'MRN-001240', scanId: 1 };
+  const patient = location.state || { patientId: 1, patientName: 'John Smith', mrn: 'MRN-001240', scanId: 1, doctorId: 1, selectedFile: null };
+  const selectedFile = location.state?.selectedFile;
   
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -44,14 +45,18 @@ export default function UploadToAI() {
         });
       }, 50);
 
-      // We'll use a dummy file for the API integration
-      const dummyFile = new File(["dummy content"], "scan.dcm", { type: "application/dicom" });
-      await uploadScan(patient.scanId, dummyFile);
+      const fileToUpload = selectedFile || new File(["dummy content"], "scan.dcm", { type: "application/dicom" });
+      const doctorIdToUse = patient.doctorId || 1; // Safeguard if undefined
+      const urgency = patient.urgency || "Routine"; // Safeguard urgency
+      const result = await uploadScan(patient.scanId || 1, fileToUpload, doctorIdToUse, urgency);
       
       setProgress(100);
       setCurrentStep(uploadSteps.length - 1);
       setDone(true);
       toast.success('Scan successfully uploaded to AI engine');
+      
+      // Store result to pass it to the next screen
+      localStorage.setItem('lastAnalysisResult', JSON.stringify(result));
     } catch (error: any) {
       toast.error(error.message || 'Upload failed');
       setUploading(false);
@@ -96,8 +101,8 @@ export default function UploadToAI() {
                 {[
                   { label: 'Patient', value: patient.patientName },
                   { label: 'MRN', value: patient.mrn },
-                  { label: 'Scan Type', value: 'PA Chest X-Ray' },
-                  { label: 'Image Size', value: '4.2 MB (DICOM)' },
+                  { label: 'File Name', value: selectedFile?.name || 'PA Chest X-Ray' },
+                  { label: 'Image Size', value: selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB` : '4.2 MB (DICOM)' },
                   { label: 'Quality Score', value: '85% – Acceptable' },
                   { label: 'Priority', value: 'Routine' },
                 ].map((item, i) => (
@@ -170,7 +175,10 @@ export default function UploadToAI() {
             )}
             {done && (
               <button
-                onClick={() => navigate('/technician/upload-success')}
+                onClick={() => {
+                  const result = JSON.parse(localStorage.getItem('lastAnalysisResult') || '{}');
+                  navigate('/technician/upload-success', { state: { ...patient, analysis: result } });
+                }}
                 className="w-full bg-green-600 text-white py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all"
               >
                 Continue <ChevronRight className="w-5 h-5" />

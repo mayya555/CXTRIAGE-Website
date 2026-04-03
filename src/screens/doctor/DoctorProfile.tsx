@@ -12,8 +12,9 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Button } from '../../components/ui/button';
 import { Switch } from '../../components/ui/switch';
-import { getDoctorProfile, updateDoctorProfile } from '../../lib/api';
+import { getDoctorProfile, updateDoctorProfile, getDoctorStats, uploadDoctorPhoto, API_BASE_URL } from '../../lib/api';
 import { toast } from 'sonner';
+import { validatePhoneNumber } from '../../lib/validation';
 
 // Pure SVG dual-area chart
 function SvgDualAreaChart({ data }: { data: { month: string; reviewed: number; reports: number }[] }) {
@@ -55,18 +56,24 @@ export default function DoctorProfile() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [joinedAt, setJoinedAt] = useState<string>('Joined Feb 2019');
+  const [statsData, setStatsData] = useState({
+    cases_reviewed: '0',
+    cases_this_month: '0',
+    accuracy: '94.3%',
+    review_time: '12m'
+  });
+  const [reviewData, setReviewData] = useState<{ month: string; reviewed: number; reports: number }[]>([]);
   
   // Get email from localStorage after login
   const doctorEmail = localStorage.getItem('doctorEmail') || '';
 
   const [formData, setFormData] = useState({
+    id: 0,
     name: '',
     email: '',
     phone: '',
     specialization: '',
-    licenseNumber: '',
-    department: '',
-    location: '',
   });
 
   useEffect(() => {
@@ -78,15 +85,33 @@ export default function DoctorProfile() {
       try {
         const profile = await getDoctorProfile(doctorEmail);
         setFormData({
+          id: profile.id,
           name: profile.full_name,
           email: profile.email,
           phone: profile.phone || '',
           specialization: profile.specialization || 'Radiology',
-          licenseNumber: profile.license_number || 'N/A',
-          department: profile.department || 'Diagnostics',
-          location: profile.location || 'N/A',
         });
-        if (profile.photo_url) setProfilePhoto(profile.photo_url);
+        
+        // Sync to localStorage for WebAppLayout header
+        localStorage.setItem('doctorName', profile.full_name);
+        localStorage.setItem('doctorSpecialization', profile.specialization || 'Radiology');
+        
+        if (profile.joined_at) {
+          const date = new Date(profile.joined_at);
+          setJoinedAt(`Joined ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`);
+        }
+        if (profile.stats) {
+          setStatsData(profile.stats);
+        }
+        if (profile.photo_url) {
+          const fullUrl = profile.photo_url.startsWith('http') ? profile.photo_url : `${API_BASE_URL}/${profile.photo_url}`;
+          setProfilePhoto(fullUrl);
+          localStorage.setItem('doctorPhoto', fullUrl);
+        }
+
+        // Fetch historical stats
+        const historical = await getDoctorStats(profile.id);
+        setReviewData(historical);
       } catch (error: any) {
         toast.error(error.message || 'Failed to fetch doctor profile');
       } finally {
@@ -115,15 +140,31 @@ export default function DoctorProfile() {
   });
 
   const handleSave = async () => {
+    const phoneValidation = validatePhoneNumber(formData.phone);
+    if (!phoneValidation.isValid) {
+      toast.error(phoneValidation.message);
+      return;
+    }
+
     try {
+      const nameParts = formData.name.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      const cleanedPhone = formData.phone.replace(/[\s\-]/g, '').replace(/^\+91/, '');
+      
       await updateDoctorProfile({
+        id: formData.id,
         email: formData.email,
-        full_name: formData.name,
-        phone: formData.phone,
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: cleanedPhone,
         specialization: formData.specialization,
-        department: formData.department,
-        license_number: formData.licenseNumber
       });
+      // Important: Update localStorage if the email changed to ensure the next fetch is successful
+      localStorage.setItem('doctorEmail', formData.email);
+      localStorage.setItem('doctorName', formData.name);
+      localStorage.setItem('doctorSpecialization', formData.specialization);
+      
       toast.success('Profile updated successfully');
       setIsEditOpen(false);
     } catch (error: any) {
@@ -131,32 +172,29 @@ export default function DoctorProfile() {
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePhoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const result = await uploadDoctorPhoto(formData.email, file);
+        const fullUrl = `${API_BASE_URL}/${result.photo}`;
+        setProfilePhoto(fullUrl);
+        localStorage.setItem('doctorPhoto', fullUrl);
+        toast.success('Profile photo updated');
+      } catch (error: any) {
+        toast.error('Failed to upload photo');
+      }
     }
   };
 
   const stats = [
-    { label: 'Cases Reviewed', value: '1,847', icon: FileText, color: 'text-[#2563EB]', bg: 'bg-blue-50' },
-    { label: 'AI Accuracy', value: '94.3%', icon: Brain, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Avg. Review Time', value: '12m', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'This Month', value: '143', icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Cases Reviewed', value: statsData.cases_reviewed, icon: FileText, color: 'text-[#2563EB]', bg: 'bg-blue-50' },
+    { label: 'AI Accuracy', value: statsData.accuracy, icon: Brain, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Avg. Review Time', value: statsData.review_time, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'This Month', value: statsData.cases_this_month, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
   ];
 
-  const reviewData = [
-    { month: 'Oct', reviewed: 142, reports: 138 },
-    { month: 'Nov', reviewed: 156, reports: 151 },
-    { month: 'Dec', reviewed: 138, reports: 133 },
-    { month: 'Jan', reviewed: 167, reports: 162 },
-    { month: 'Feb', reviewed: 151, reports: 147 },
-    { month: 'Mar', reviewed: 143, reports: 139 },
-  ];
+  // Remove static reviewData as it is now in state
 
   const certifications = [
     { name: 'Board Certified Radiologist', id: 'BCR-2019-78901', expiry: 'Dec 2029', status: 'Active' },
@@ -247,7 +285,7 @@ export default function DoctorProfile() {
                     <h2 className="font-bold text-slate-900 text-xl">{formData.name}</h2>
                     <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Active</span>
                   </div>
-                  <p className="text-slate-600 text-sm mb-4">{formData.specialization} Specialist • {formData.department}</p>
+                  <p className="text-slate-600 text-sm mb-4">{formData.specialization} Specialist</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center gap-2 text-slate-600">
                       <Mail className="w-4 h-4" />
@@ -258,16 +296,8 @@ export default function DoctorProfile() {
                       <span>{formData.phone}</span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-600">
-                      <MapPin className="w-4 h-4" />
-                      <span>{formData.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600">
                       <Calendar className="w-4 h-4" />
-                      <span>Joined Feb 2019</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Shield className="w-4 h-4" />
-                      <span>License: {formData.licenseNumber}</span>
+                      <span>{joinedAt}</span>
                     </div>
                   </div>
                 </div>
@@ -649,9 +679,8 @@ export default function DoctorProfile() {
               <Input
                 id="email"
                 type="email"
-                readOnly
                 value={formData.email}
-                className="bg-slate-50 opacity-70"
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
             <div className="space-y-2">
@@ -668,30 +697,6 @@ export default function DoctorProfile() {
                 id="specialization"
                 value={formData.specialization}
                 onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <Input
-                id="department"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="licenseNumber">License Number</Label>
-              <Input
-                id="licenseNumber"
-                value={formData.licenseNumber}
-                onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               />
             </div>
           </div>
